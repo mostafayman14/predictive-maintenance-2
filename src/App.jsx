@@ -14,7 +14,7 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
-  const { data, api } = useDashboardData(dashboardMockData)
+  const { data, api, live } = useDashboardData(dashboardMockData)
   const isOnline = useOnlineStatus()
 
   const navigationItems = useMemo(
@@ -77,7 +77,7 @@ function App() {
           description="The monitoring dashboard failed to render. Retry or refresh the application."
         >
           <Suspense fallback={<DashboardSkeleton />}>
-            <DashboardPage data={data} apiState={api} />
+            <DashboardPage data={data} apiState={api} connectionStatus={live.connectionStatus} />
           </Suspense>
         </ErrorBoundary>
       </DashboardLayout>

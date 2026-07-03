@@ -1,7 +1,3 @@
-import { createSeedPoints } from '../lib/chartUtils'
-
-const seedEnd = Date.now()
-
 export const dashboardMockData = {
   brand: {
     name: 'Industrial AI',
@@ -48,10 +44,6 @@ export const dashboardMockData = {
       'Mock dashboard structure with reusable components prepared for future API integration.',
   },
   sections: {
-    sensors: {
-      title: 'Sensor Cards',
-      description: 'Mock sensor readings for layout development.',
-    },
     charts: {
       title: 'Live Charts Section',
       description: 'Mock chart components for future sensor streams.',
@@ -62,35 +54,35 @@ export const dashboardMockData = {
     },
   },
   sensors: [
-    { title: 'Temperature Sensor', value: '68', unit: '°C', status: 'Normal', variant: 'success' },
-    { title: 'Vibration Sensor', value: '3.4', unit: 'mm/s', status: 'Watch', variant: 'warning' },
-    { title: 'Sound Sensor', value: '72', unit: 'dB', status: 'Normal', variant: 'success' },
-    { title: 'Current Sensor', value: '11.8', unit: 'A', status: 'Normal', variant: 'success' },
+    { title: 'Temperature Sensor', value: null, unit: '°C', status: 'Waiting', variant: 'muted' },
+    { title: 'Vibration Sensor', value: null, unit: 'mm/s', status: 'Waiting', variant: 'muted' },
+    { title: 'Sound Sensor', value: null, unit: 'dB', status: 'Waiting', variant: 'muted' },
+    { title: 'Current Sensor', value: null, unit: 'A', status: 'Waiting', variant: 'muted' },
   ],
   charts: {
     temperature: {
       title: 'Temperature',
       unit: '°C',
       color: '#0891b2',
-      points: createSeedPoints([54, 57, 61, 63, 66, 68, 67, 69], seedEnd),
+      points: [],
     },
     vibration: {
       title: 'Vibration',
       unit: 'mm/s',
       color: '#7c3aed',
-      points: createSeedPoints([2.1, 2.4, 3.2, 3.4, 3.1, 3.6, 3.3, 3.4], seedEnd),
+      points: [],
     },
     sound: {
       title: 'Sound',
       unit: 'dB',
       color: '#059669',
-      points: createSeedPoints([64, 67, 70, 72, 71, 73, 72, 72], seedEnd),
+      points: [],
     },
     current: {
       title: 'Current',
       unit: 'A',
       color: '#d97706',
-      points: createSeedPoints([9.8, 10.4, 11.1, 11.8, 11.2, 12.1, 11.7, 11.8], seedEnd),
+      points: [],
     },
   },
   prediction: {

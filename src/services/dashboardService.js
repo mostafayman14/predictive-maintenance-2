@@ -22,4 +22,8 @@ export const dashboardService = {
   getSystemInfo() {
     return unwrap(apiClient.get(API_ENDPOINTS.systemInfo))
   },
+
+  getLive(body = {}, config = {}) {
+    return unwrap(apiClient.post(API_ENDPOINTS.live, body, config))
+  },
 }

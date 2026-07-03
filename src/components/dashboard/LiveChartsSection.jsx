@@ -19,7 +19,7 @@ function getSensorReading(sensors, chartKey) {
   return sensor?.value ?? null
 }
 
-const LiveChartsSection = memo(function LiveChartsSection({ section, charts, sensors }) {
+const LiveChartsSection = memo(function LiveChartsSection({ section, charts, sensors, connectionStatus }) {
   const readings = useMemo(
     () =>
       Object.fromEntries(
@@ -36,7 +36,7 @@ const LiveChartsSection = memo(function LiveChartsSection({ section, charts, sen
       </h2>
       <ErrorBoundary
         title="Charts unavailable"
-        description="Live chart rendering failed. Sensor cards and other dashboard sections remain available."
+        description="Live chart rendering failed. Other dashboard sections remain available."
       >
         <div className="grid gap-4 xl:grid-cols-2">
           {chartConfigs.map((config, index) => (
@@ -45,6 +45,7 @@ const LiveChartsSection = memo(function LiveChartsSection({ section, charts, sen
               config={config}
               chartData={charts?.[config.key]}
               reading={readings[config.key]}
+              connectionStatus={connectionStatus}
               delay={index * 0.05}
             />
           ))}

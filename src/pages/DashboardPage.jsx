@@ -4,7 +4,6 @@ import { motion } from 'framer-motion'
 import { ApiStatePanel } from '../components/dashboard/ApiStatePanel'
 import { HeroBanner } from '../components/dashboard/sections/HeroBanner'
 import { PredictionSection } from '../components/dashboard/sections/PredictionSection'
-import { SensorsSection } from '../components/dashboard/sections/SensorsSection'
 import { ChartSkeleton } from '../components/common/ChartSkeleton'
 import { staggerContainer, staggerItem } from '../lib/motion'
 
@@ -14,7 +13,7 @@ const LiveChartsSection = lazy(() =>
   })),
 )
 
-const DashboardPage = memo(function DashboardPage({ data, apiState }) {
+const DashboardPage = memo(function DashboardPage({ data, apiState, connectionStatus }) {
   return (
     <motion.main
       className="space-y-6 p-4 sm:p-6"
@@ -45,10 +44,6 @@ const DashboardPage = memo(function DashboardPage({ data, apiState }) {
       />
 
       <motion.div variants={staggerItem}>
-        <SensorsSection section={data.sections.sensors} sensors={data.sensors} />
-      </motion.div>
-
-      <motion.div variants={staggerItem}>
         <Suspense
           fallback={
             <div className="grid gap-4 xl:grid-cols-2">
@@ -63,6 +58,7 @@ const DashboardPage = memo(function DashboardPage({ data, apiState }) {
             section={data.sections.charts}
             charts={data.charts}
             sensors={data.sensors}
+            connectionStatus={connectionStatus}
           />
         </Suspense>
       </motion.div>

@@ -6,13 +6,12 @@ export const API_ENDPOINTS = {
   live: '/live',
 }
 
-export function getWebSocketUrl() {
-  const configured = import.meta.env.VITE_WS_BASE_URL
+const DEFAULT_LIVE_POLL_INTERVAL_MS = 1000
 
-  if (configured) {
-    return configured
-  }
+export function getLivePollInterval() {
+  const configured = Number(import.meta.env.VITE_LIVE_POLL_INTERVAL)
 
-  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-  return `${protocol}//${window.location.host}/api/v1${API_ENDPOINTS.live}`
+  return Number.isFinite(configured) && configured > 0
+    ? configured
+    : DEFAULT_LIVE_POLL_INTERVAL_MS
 }

@@ -1,12 +1,13 @@
 import { createContext, useEffect, useMemo, useRef, useState } from 'react'
 
-import { getWebSocketUrl } from '../api/endpoints'
+import { getLivePollInterval } from '../api/endpoints'
+import { dashboardService } from '../services/dashboardService'
 import {
   createLivePatch,
   initialLivePatch,
   mapConnectionStatus,
 } from '../services/liveDataNormalizer'
-import { createLiveWebSocketService } from '../services/liveWebSocketService'
+import { createLivePollingService } from '../services/livePollingService'
 
 const LiveDataContext = createContext(null)
 
@@ -17,7 +18,9 @@ function LiveDataProvider({ children, fallbackConnection }) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
-    const service = createLiveWebSocketService(getWebSocketUrl())
+    const service = createLivePollingService(() => dashboardService.getLive(), {
+      intervalMs: getLivePollInterval(),
+    })
     serviceRef.current = service
 
     const unsubscribeMessage = service.onMessage((payload) => {

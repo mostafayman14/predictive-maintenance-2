@@ -37,6 +37,12 @@ export function appendChartPoint(points = [], value, timestamp = Date.now()) {
     return points
   }
 
+  const lastPoint = points[points.length - 1]
+
+  if (lastPoint && timestamp <= lastPoint.timestamp) {
+    return points
+  }
+
   return trimChartWindow(
     [...points, { timestamp, value: Number(value) }],
     timestamp,

@@ -2,7 +2,7 @@ import { memo } from 'react'
 
 import { LiveLineChart } from './LiveLineChart'
 
-const SensorLineChart = memo(function SensorLineChart({ config, chartData, reading, delay = 0 }) {
+const SensorLineChart = memo(function SensorLineChart({ config, chartData, reading, connectionStatus, delay = 0 }) {
   if (!chartData) {
     return null
   }
@@ -17,6 +17,7 @@ const SensorLineChart = memo(function SensorLineChart({ config, chartData, readi
       reading={reading}
       color={chartData.color ?? config.color}
       icon={config.icon}
+      connectionStatus={connectionStatus}
       delay={delay}
     />
   )

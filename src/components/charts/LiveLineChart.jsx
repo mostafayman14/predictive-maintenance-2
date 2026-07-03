@@ -1,4 +1,4 @@
-import { LineChart as LineChartIcon } from 'lucide-react'
+import { Loader2, PlugZap } from 'lucide-react'
 import { memo, useMemo } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import {
@@ -18,7 +18,6 @@ import {
 } from '../../lib/chartUtils'
 import { formatSensorValue } from '../../lib/formatSensorValue'
 import { fadeIn, transition } from '../../lib/motion'
-import { EmptyState } from '../common/EmptyState'
 import { CardContent, CardHeader, CardTitle } from '../ui/card'
 import { AnimatedCard } from '../ui/animated-card'
 import { AnimatedValue } from '../ui/animated-value'
@@ -38,6 +37,70 @@ function ChartTooltip({ active, payload, unit }) {
         {formatSensorValue(point.value, unit)}
       </p>
     </div>
+  )
+}
+
+function getWaitingContent(connectionStatus) {
+  switch (connectionStatus) {
+    case 'connected':
+      return {
+        title: 'Waiting for sensor data',
+        description: 'Live data connected. The chart will draw as readings arrive.',
+        pulse: true,
+      }
+    case 'connecting':
+      return {
+        title: 'Connecting to live data',
+        description: 'Requesting live readings from the motor.',
+        pulse: true,
+      }
+    case 'reconnecting':
+      return {
+        title: 'Reconnecting to live data',
+        description: 'Retrying the live data request.',
+        pulse: true,
+      }
+    case 'error':
+      return {
+        title: 'Connection error',
+        description: 'Could not reach the live data feed. Retrying automatically.',
+        pulse: false,
+      }
+    default:
+      return {
+        title: 'Waiting for live connection',
+        description: 'The chart will start drawing once live data starts arriving.',
+        pulse: false,
+      }
+  }
+}
+
+function ChartWaitingState({ connectionStatus }) {
+  const { title, description, pulse } = getWaitingContent(connectionStatus)
+  const Icon = pulse ? Loader2 : PlugZap
+
+  return (
+    <motion.div
+      key="chart-waiting"
+      className="flex h-full items-center justify-center p-4"
+      variants={fadeIn}
+      initial="initial"
+      animate="animate"
+      exit="exit"
+      transition={transition}
+    >
+      <div
+        role="status"
+        aria-live="polite"
+        className="flex min-h-32 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center"
+      >
+        <div className="mb-3 rounded-xl border border-cyan-200 bg-cyan-50 p-3 text-cyan-700">
+          <Icon className={`h-5 w-5 ${pulse ? 'animate-spin' : ''}`} aria-hidden="true" />
+        </div>
+        <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+        <p className="mt-2 max-w-sm text-sm text-slate-600">{description}</p>
+      </div>
+    </motion.div>
   )
 }
 
@@ -85,6 +148,7 @@ const LiveLineChart = memo(function LiveLineChart({
   windowSeconds = 60,
   delay = 0,
   isLoading = false,
+  connectionStatus = 'disconnected',
 }) {
   const normalizedDataset = useMemo(
     () => normalizeChartDataset(dataset ?? points, data),
@@ -151,21 +215,7 @@ const LiveLineChart = memo(function LiveLineChart({
             {isLoading ? (
               <ChartLoadingState />
             ) : isEmpty ? (
-              <motion.div
-                key="chart-empty"
-                className="flex h-full items-center justify-center p-4"
-                variants={fadeIn}
-                initial="initial"
-                animate="animate"
-                exit="exit"
-                transition={transition}
-              >
-                <EmptyState
-                  icon={LineChartIcon}
-                  title="No chart data"
-                  description="Live sensor readings will populate this chart when the stream becomes active."
-                />
-              </motion.div>
+              <ChartWaitingState connectionStatus={connectionStatus} />
             ) : (
               <motion.div
                 key="chart-ready"

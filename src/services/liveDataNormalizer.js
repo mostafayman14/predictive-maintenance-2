@@ -16,6 +16,35 @@ function formatValue(value) {
   return value === null ? null : String(value)
 }
 
+function toTimestampMs(value, fallback) {
+  if (value === null || value === undefined) {
+    return fallback
+  }
+
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    return value
+  }
+
+  const parsed = new Date(value).getTime()
+  return Number.isFinite(parsed) ? parsed : fallback
+}
+
+function readSensor(data, key, fallbackTimestamp) {
+  const raw = data?.[key]
+
+  if (raw !== null && typeof raw === 'object') {
+    return {
+      value: toNumber(raw.value),
+      timestamp: toTimestampMs(raw.timestamp, fallbackTimestamp),
+    }
+  }
+
+  return {
+    value: toNumber(raw),
+    timestamp: fallbackTimestamp,
+  }
+}
+
 function mergeChartSeries(existingChart, incomingChart, scalarValue, unit, timestamp) {
   const existingPoints = existingChart?.points ?? existingChart?.dataset ?? []
 
@@ -51,17 +80,19 @@ function updateSensorList(sensors, key, value, status, variant) {
 function normalizeIncomingPayload(payload) {
   const data = payload?.data ?? payload
 
+  const topTimestamp = data.timestamp ?? data.lastUpdate ?? null
+  const fallbackTimestamp = topTimestamp ? new Date(topTimestamp).getTime() : Date.now()
+
   return {
-    temperature: toNumber(data.temperature),
-    vibration: toNumber(data.vibration),
-    sound: toNumber(data.sound),
-    current: toNumber(data.current),
+    temperature: readSensor(data, 'temperature', fallbackTimestamp),
+    vibration: readSensor(data, 'vibration', fallbackTimestamp),
+    sound: readSensor(data, 'sound', fallbackTimestamp),
+    current: readSensor(data, 'current', fallbackTimestamp),
     sensorStatus: data.sensorStatus ?? data.sensors ?? null,
     prediction: data.prediction ?? null,
     healthScore: data.healthScore ?? null,
     confidence: data.confidence ?? null,
     charts: data.charts ?? null,
-    timestamp: data.timestamp ?? data.lastUpdate ?? new Date().toISOString(),
   }
 }
 
@@ -85,42 +116,40 @@ function mergeLiveIntoDashboard(baseData, livePatch) {
   if (Array.isArray(sensorStatus)) {
     sensors = sensorStatus
   } else {
-    sensors = updateSensorList(sensors, 'temperature', temperature, sensorStatus?.temperature?.status, sensorStatus?.temperature?.variant)
-    sensors = updateSensorList(sensors, 'vibration', vibration, sensorStatus?.vibration?.status, sensorStatus?.vibration?.variant)
-    sensors = updateSensorList(sensors, 'sound', sound, sensorStatus?.sound?.status, sensorStatus?.sound?.variant)
-    sensors = updateSensorList(sensors, 'current', current, sensorStatus?.current?.status, sensorStatus?.current?.variant)
+    sensors = updateSensorList(sensors, 'temperature', temperature?.value, sensorStatus?.temperature?.status, sensorStatus?.temperature?.variant)
+    sensors = updateSensorList(sensors, 'vibration', vibration?.value, sensorStatus?.vibration?.status, sensorStatus?.vibration?.variant)
+    sensors = updateSensorList(sensors, 'sound', sound?.value, sensorStatus?.sound?.status, sensorStatus?.sound?.variant)
+    sensors = updateSensorList(sensors, 'current', current?.value, sensorStatus?.current?.status, sensorStatus?.current?.variant)
   }
-
-  const timestampMs = timestamp ? new Date(timestamp).getTime() : Date.now()
 
   const nextCharts = {
     temperature: mergeChartSeries(
       baseData.charts.temperature,
       charts?.temperature,
-      temperature,
+      temperature?.value,
       '°C',
-      timestampMs,
+      temperature?.timestamp,
     ),
     vibration: mergeChartSeries(
       baseData.charts.vibration,
       charts?.vibration,
-      vibration,
+      vibration?.value,
       'mm/s',
-      timestampMs,
+      vibration?.timestamp,
     ),
     sound: mergeChartSeries(
       baseData.charts.sound,
       charts?.sound,
-      sound,
+      sound?.value,
       'dB',
-      timestampMs,
+      sound?.timestamp,
     ),
     current: mergeChartSeries(
       baseData.charts.current,
       charts?.current,
-      current,
+      current?.value,
       'A',
-      timestampMs,
+      current?.timestamp,
     ),
   }
 
@@ -141,50 +170,71 @@ function mergeLiveIntoDashboard(baseData, livePatch) {
   }
 }
 
-function mapConnectionStatus(wsStatus, fallbackConnection, wsError) {
+function mapConnectionStatus(liveStatus, fallbackConnection, liveError) {
   const statusMap = {
     connected: {
       label: 'Live Connected',
       variant: 'success',
-      description: 'Receiving real-time motor data',
+      description: 'Receiving live motor data',
     },
     connecting: {
       label: 'Connecting',
       variant: 'warning',
-      description: 'Opening live WebSocket stream',
+      description: 'Requesting live motor data',
     },
     reconnecting: {
       label: 'Reconnecting',
       variant: 'warning',
-      description: 'Attempting to restore live stream',
+      description: 'Retrying the live data request',
     },
     disconnected: {
       label: 'Disconnected',
       variant: 'muted',
-      description: 'Live stream is offline',
+      description: 'Live polling is stopped',
     },
     error: {
       label: 'Connection Error',
       variant: 'warning',
-      description: wsError?.message ?? 'Live stream encountered an error',
+      description: liveError?.message ?? 'Live data request failed',
     },
   }
 
   return {
     ...fallbackConnection,
-    ...(statusMap[wsStatus] ?? statusMap.disconnected),
+    ...(statusMap[liveStatus] ?? statusMap.disconnected),
   }
+}
+
+function mergeSensorReading(previous, incoming) {
+  if (incoming?.value === null || incoming?.value === undefined) {
+    return previous ?? { value: null, timestamp: null }
+  }
+
+  return incoming
+}
+
+function latestTimestamp(readings, fallback) {
+  const times = readings
+    .filter((reading) => reading?.value !== null && reading?.value !== undefined && reading?.timestamp)
+    .map((reading) => reading.timestamp)
+
+  return times.length ? Math.max(...times) : fallback
 }
 
 function createLivePatch(previousPatch, payload) {
   const normalized = normalizeIncomingPayload(payload)
 
+  const temperature = mergeSensorReading(previousPatch.temperature, normalized.temperature)
+  const vibration = mergeSensorReading(previousPatch.vibration, normalized.vibration)
+  const sound = mergeSensorReading(previousPatch.sound, normalized.sound)
+  const current = mergeSensorReading(previousPatch.current, normalized.current)
+
   return {
     hasUpdates: true,
-    temperature: normalized.temperature ?? previousPatch.temperature,
-    vibration: normalized.vibration ?? previousPatch.vibration,
-    sound: normalized.sound ?? previousPatch.sound,
-    current: normalized.current ?? previousPatch.current,
+    temperature,
+    vibration,
+    sound,
+    current,
     sensorStatus: normalized.sensorStatus ?? previousPatch.sensorStatus,
     prediction: normalized.prediction
       ? { ...(previousPatch.prediction ?? {}), ...normalized.prediction }
@@ -196,16 +246,19 @@ function createLivePatch(previousPatch, payload) {
       ? { ...(previousPatch.confidence ?? {}), ...normalized.confidence }
       : previousPatch.confidence,
     charts: normalized.charts ?? previousPatch.charts,
-    timestamp: normalized.timestamp,
+    timestamp: latestTimestamp(
+      [normalized.temperature, normalized.vibration, normalized.sound, normalized.current],
+      previousPatch.timestamp,
+    ),
   }
 }
 
 const initialLivePatch = {
   hasUpdates: false,
-  temperature: null,
-  vibration: null,
-  sound: null,
-  current: null,
+  temperature: { value: null, timestamp: null },
+  vibration: { value: null, timestamp: null },
+  sound: { value: null, timestamp: null },
+  current: { value: null, timestamp: null },
   sensorStatus: null,
   prediction: null,
   healthScore: null,
