@@ -8,6 +8,10 @@ export const API_ENDPOINTS = {
 
 const DEFAULT_LIVE_POLL_INTERVAL_MS = 1000
 
+export function isLivePollingEnabled() {
+  return import.meta.env.VITE_LIVE_POLLING_ENABLED === 'true'
+}
+
 export function getLivePollInterval() {
   const configured = Number(import.meta.env.VITE_LIVE_POLL_INTERVAL)
 

@@ -1,6 +1,6 @@
 import { createContext, useEffect, useMemo, useRef, useState } from 'react'
 
-import { getLivePollInterval } from '../api/endpoints'
+import { getLivePollInterval, isLivePollingEnabled } from '../api/endpoints'
 import { dashboardService } from '../services/dashboardService'
 import {
   createLivePatch,
@@ -18,6 +18,10 @@ function LiveDataProvider({ children, fallbackConnection }) {
   const [error, setError] = useState(null)
 
   useEffect(() => {
+    if (!isLivePollingEnabled()) {
+      return undefined
+    }
+
     const service = createLivePollingService(() => dashboardService.getLive(), {
       intervalMs: getLivePollInterval(),
     })
