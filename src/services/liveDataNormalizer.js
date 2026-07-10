@@ -1,4 +1,10 @@
 import { mergeChartPoints } from '../lib/chartUtils'
+import {
+  CURRENT_DISPLAY_UNIT,
+  ampsToMilliAmps,
+  convertCurrentChart,
+  convertCurrentSensors,
+} from '../lib/currentUnits'
 
 const SENSOR_KEYS = {
   temperature: 'Temperature Sensor',
@@ -71,6 +77,7 @@ function updateSensorList(sensors, key, value, status, variant) {
     return {
       ...sensor,
       ...(value !== null ? { value: formatValue(value) } : {}),
+      ...(key === 'current' ? { unit: CURRENT_DISPLAY_UNIT } : {}),
       ...(status ? { status } : {}),
       ...(variant ? { variant } : {}),
     }
@@ -83,16 +90,22 @@ function normalizeIncomingPayload(payload) {
   const topTimestamp = data.timestamp ?? data.lastUpdate ?? null
   const fallbackTimestamp = topTimestamp ? new Date(topTimestamp).getTime() : Date.now()
 
+  const current = readSensor(data, 'current', fallbackTimestamp)
+  const charts = data.charts ?? null
+
   return {
     temperature: readSensor(data, 'temperature', fallbackTimestamp),
     vibration: readSensor(data, 'vibration', fallbackTimestamp),
     sound: readSensor(data, 'sound', fallbackTimestamp),
-    current: readSensor(data, 'current', fallbackTimestamp),
+    current: {
+      ...current,
+      value: ampsToMilliAmps(current.value),
+    },
     sensorStatus: data.sensorStatus ?? data.sensors ?? null,
     prediction: data.prediction ?? null,
     healthScore: data.healthScore ?? null,
     confidence: data.confidence ?? null,
-    charts: data.charts ?? null,
+    charts: charts?.current ? { ...charts, current: convertCurrentChart(charts.current) } : charts,
   }
 }
 
@@ -114,7 +127,7 @@ function mergeLiveIntoDashboard(baseData, livePatch) {
   let sensors = [...baseData.sensors]
 
   if (Array.isArray(sensorStatus)) {
-    sensors = sensorStatus
+    sensors = convertCurrentSensors(sensorStatus)
   } else {
     sensors = updateSensorList(sensors, 'temperature', temperature?.value, sensorStatus?.temperature?.status, sensorStatus?.temperature?.variant)
     sensors = updateSensorList(sensors, 'vibration', vibration?.value, sensorStatus?.vibration?.status, sensorStatus?.vibration?.variant)
@@ -148,7 +161,7 @@ function mergeLiveIntoDashboard(baseData, livePatch) {
       baseData.charts.current,
       charts?.current,
       current?.value,
-      'A',
+      CURRENT_DISPLAY_UNIT,
       current?.timestamp,
     ),
   }

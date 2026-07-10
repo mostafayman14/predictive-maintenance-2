@@ -58,7 +58,7 @@ systemctl restart ${SERVICE_NAME}
 echo "==> Apache site"
 cat > /etc/apache2/sites-available/${APACHE_SITE} << 'EOF'
 <VirtualHost *:80>
-    ServerName 217.65.144.196
+    ServerName mostafa.maksoudaa.com
     DocumentRoot /var/www/predictive-maintenance-2/dist
 
     <Directory /var/www/predictive-maintenance-2/dist>
