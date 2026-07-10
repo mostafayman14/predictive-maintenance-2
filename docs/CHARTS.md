@@ -32,7 +32,7 @@ The dashboard shows **four live line charts**:
 | `temperature` | Temperature   | °C     | cyan    |
 | `vibration`   | Vibration     | mm/s   | violet  |
 | `sound`       | Sound           | dB     | green   |
-| `current`     | Current         | mA (Amps × 1000) | amber   |
+| `current`     | Current         | A      | amber   |
 
 Each chart is a **time-series line chart** that keeps only the **last 60 seconds** of readings and auto-scrolls as new data arrives.
 

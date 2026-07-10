@@ -238,7 +238,7 @@ Mock / static UI labels (brand, hero copy, navigation) always come from `mockDas
 | `temperature` | Temperature | °C | `#0891b2` |
 | `vibration` | Vibration | mm/s | `#7c3aed` |
 | `sound` | Sound | dB | `#059669` |
-| `current` | Current | mA (API Amps × 1000) | `#d97706` |
+| `current` | Current | A | `#d97706` |
 
 ### Point contract
 

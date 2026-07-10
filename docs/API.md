@@ -125,7 +125,7 @@ The system tracks **4 sensors**. Keys must match exactly.
 | `temperature` | `Temperature Sensor` | `°C` | `#0891b2` |
 | `vibration` | `Vibration Sensor` | `mm/s` | `#7c3aed` |
 | `sound` | `Sound Sensor` | `dB` | `#059669` |
-| `current` | `Current Sensor` | `A` (API) → UI shows `mA` as `value × 1000` | `#d97706` |
+| `current` | `Current Sensor` | `A` | `#d97706` |
 
 ### Chart point format
 
@@ -142,17 +142,6 @@ The system tracks **4 sensors**. Keys must match exactly.
 | `value` | `number` | Must be numeric — not `"N/A"` or `null` |
 
 Charts keep a **60-second rolling window** (max 60 points per sensor).
-
-### Current display conversion
-
-The API sends `current` in **Amps**. The frontend converts for display:
-
-```text
-displayValue = round(apiValue × 1000)   // milliamps
-unit = mA
-```
-
-Example: API `11.8` A → UI `11800 mA`.
 
 ---
 

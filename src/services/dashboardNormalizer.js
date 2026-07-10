@@ -1,4 +1,3 @@
-import { convertCurrentCharts, convertCurrentSensors } from '../lib/currentUnits'
 import { mergeLiveIntoDashboard } from './liveDataNormalizer'
 
 export function getPayload(resourceData) {
@@ -52,12 +51,10 @@ export function buildDashboardData({
     ...fallbackData,
     connection: normalizeConnection(statusPayload, fallbackData.connection),
     overview: statusPayload.overview ?? fallbackData.overview,
-    sensors: convertCurrentSensors(
-      statusPayload.sensors ?? historyPayload.sensors ?? fallbackData.sensors,
-    ),
+    sensors: statusPayload.sensors ?? historyPayload.sensors ?? fallbackData.sensors,
     healthScore: statusPayload.healthScore ?? fallbackData.healthScore,
     confidence: statusPayload.confidence ?? fallbackData.confidence,
-    charts: convertCurrentCharts(historyPayload.charts ?? fallbackData.charts),
+    charts: historyPayload.charts ?? fallbackData.charts,
     prediction: statusPayload.prediction ?? fallbackData.prediction,
     fault: recommendationsPayload.fault ?? statusPayload.fault ?? fallbackData.fault,
     recommendations:
