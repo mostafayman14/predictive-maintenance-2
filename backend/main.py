@@ -54,52 +54,52 @@ DECIMALS = {
 
 SIMULATION_START = time.time()
 latest_manual_readings: dict[str, dict[str, float | int]] | None = None
-latest_detected_condition: str = "good100"
+latest_detected_condition: str = "Good100"
 
 CONDITION_CATALOG = {
-    "good100": {
+    "Good100": {
         "diagnosis": "Healthy",
         "recommendedAction": "Motor is operating normally. No maintenance is required.",
         "severity": "Low",
         "variant": "success",
         "probability": 100,
     },
-    "good50": {
+    "Good50": {
         "diagnosis": "Aged Motor",
         "recommendedAction": "Motor is operational but shows signs of aging. Schedule preventive maintenance.",
         "severity": "Medium",
         "variant": "warning",
         "probability": 50,
     },
-    "bearingAboutToFail": {
+    "BearingAboutToFail": {
         "diagnosis": "Bearing Degradation",
         "recommendedAction": "Bearing wear has been detected. Replace the bearing within 1–2 weeks to prevent unexpected failure.",
         "severity": "High",
         "variant": "warning",
         "probability": 75,
     },
-    "bearingFailure": {
+    "BearingFail": {
         "diagnosis": "Bearing Failure",
         "recommendedAction": "Critical bearing failure detected. Stop operation and replace the bearing immediately.",
         "severity": "Critical",
         "variant": "warning",
         "probability": 95,
     },
-    "capacitorFailure": {
+    "CapacitorFail": {
         "diagnosis": "Capacitor Fault",
         "recommendedAction": "Capacitor malfunction detected. Replace the capacitor as soon as possible.",
         "severity": "High",
         "variant": "warning",
         "probability": 90,
     },
-    "axisFailure": {
+    "AxeFail": {
         "diagnosis": "Shaft Wear",
         "recommendedAction": "Shaft wear detected. Inspect the shaft and replace it if necessary.",
         "severity": "High",
         "variant": "warning",
         "probability": 85,
     },
-    "overheating": {
+    "Overheating": {
         "diagnosis": "Overheating",
         "recommendedAction": "Motor temperature exceeds the safe operating limit. Turn off the motor immediately and inspect the cooling system before restarting.",
         "severity": "Critical",
@@ -108,10 +108,39 @@ CONDITION_CATALOG = {
     },
 }
 
+CONDITION_ALIASES = {
+    "good100": "Good100",
+    "good50": "Good50",
+    "bearingAboutToFail": "BearingAboutToFail",
+    "bearingFailure": "BearingFail",
+    "bearingFail": "BearingFail",
+    "capacitorFailure": "CapacitorFail",
+    "capacitorFail": "CapacitorFail",
+    "axisFailure": "AxeFail",
+    "axeFail": "AxeFail",
+    "overheating": "Overheating",
+}
+
+
+def resolve_condition_code(code: str | None) -> str:
+    if not code or not isinstance(code, str):
+        return "Good100"
+
+    trimmed = code.strip()
+    if trimmed in CONDITION_CATALOG:
+        return trimmed
+
+    alias = CONDITION_ALIASES.get(trimmed) or CONDITION_ALIASES.get(trimmed.lower())
+    if alias:
+        return alias
+
+    lower_map = {key.lower(): key for key in CONDITION_CATALOG}
+    return lower_map.get(trimmed.lower(), "Good100")
+
 
 def build_condition_payload(code: str) -> dict[str, Any]:
-    condition = CONDITION_CATALOG.get(code, CONDITION_CATALOG["good100"])
-    resolved = code if code in CONDITION_CATALOG else "good100"
+    resolved = resolve_condition_code(code)
+    condition = CONDITION_CATALOG[resolved]
 
     return {
         "detectedCondition": resolved,
@@ -316,7 +345,7 @@ def post_live(body: dict[str, Any] = Body(default_factory=dict)):
     Include detectedCondition so the dashboard maps diagnosis + recommended action:
 
       {
-        "detectedCondition": "bearingFailure",
+        "detectedCondition": "BearingFail",
         "temperature": {"timestamp": 1751558400000, "value": 70.5},
         "vibration": {"value": 3.8},
         "sound": {"value": 74.0},
@@ -329,8 +358,8 @@ def post_live(body: dict[str, Any] = Body(default_factory=dict)):
     manual = readings_from_body(body, ts)
 
     incoming_condition = body.get("detectedCondition") or body.get("detected_condition")
-    if isinstance(incoming_condition, str) and incoming_condition in CONDITION_CATALOG:
-        latest_detected_condition = incoming_condition
+    if isinstance(incoming_condition, str):
+        latest_detected_condition = resolve_condition_code(incoming_condition)
 
     condition = build_condition_payload(latest_detected_condition)
 
@@ -357,7 +386,7 @@ def clear_manual_readings():
     """Switch back to automatic simulation and healthy condition."""
     global latest_manual_readings, latest_detected_condition
     latest_manual_readings = None
-    latest_detected_condition = "good100"
+    latest_detected_condition = "Good100"
     return {
         "message": "Manual readings cleared. Using simulation again.",
         "detectedCondition": latest_detected_condition,

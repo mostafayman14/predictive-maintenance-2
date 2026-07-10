@@ -1,10 +1,13 @@
 /**
  * Raspberry Pi / model sends only `detectedCondition`.
  * Frontend maps it to diagnosis, recommended action, and UI card fields.
+ *
+ * Canonical codes:
+ * Good100 | Good50 | BearingAboutToFail | BearingFail | CapacitorFail | AxeFail | Overheating
  */
 export const DETECTED_CONDITIONS = {
-  good100: {
-    code: 'good100',
+  Good100: {
+    code: 'Good100',
     diagnosis: 'Healthy',
     recommendedAction:
       'Motor is operating normally. No maintenance is required.',
@@ -14,8 +17,8 @@ export const DETECTED_CONDITIONS = {
     predictionTitle: 'Detected Condition',
     faultTitle: 'Diagnosis',
   },
-  good50: {
-    code: 'good50',
+  Good50: {
+    code: 'Good50',
     diagnosis: 'Aged Motor',
     recommendedAction:
       'Motor is operational but shows signs of aging. Schedule preventive maintenance.',
@@ -25,8 +28,8 @@ export const DETECTED_CONDITIONS = {
     predictionTitle: 'Detected Condition',
     faultTitle: 'Diagnosis',
   },
-  bearingAboutToFail: {
-    code: 'bearingAboutToFail',
+  BearingAboutToFail: {
+    code: 'BearingAboutToFail',
     diagnosis: 'Bearing Degradation',
     recommendedAction:
       'Bearing wear has been detected. Replace the bearing within 1–2 weeks to prevent unexpected failure.',
@@ -36,8 +39,8 @@ export const DETECTED_CONDITIONS = {
     predictionTitle: 'Detected Condition',
     faultTitle: 'Diagnosis',
   },
-  bearingFailure: {
-    code: 'bearingFailure',
+  BearingFail: {
+    code: 'BearingFail',
     diagnosis: 'Bearing Failure',
     recommendedAction:
       'Critical bearing failure detected. Stop operation and replace the bearing immediately.',
@@ -47,8 +50,8 @@ export const DETECTED_CONDITIONS = {
     predictionTitle: 'Detected Condition',
     faultTitle: 'Diagnosis',
   },
-  capacitorFailure: {
-    code: 'capacitorFailure',
+  CapacitorFail: {
+    code: 'CapacitorFail',
     diagnosis: 'Capacitor Fault',
     recommendedAction:
       'Capacitor malfunction detected. Replace the capacitor as soon as possible.',
@@ -58,8 +61,8 @@ export const DETECTED_CONDITIONS = {
     predictionTitle: 'Detected Condition',
     faultTitle: 'Diagnosis',
   },
-  axisFailure: {
-    code: 'axisFailure',
+  AxeFail: {
+    code: 'AxeFail',
     diagnosis: 'Shaft Wear',
     recommendedAction:
       'Shaft wear detected. Inspect the shaft and replace it if necessary.',
@@ -69,8 +72,8 @@ export const DETECTED_CONDITIONS = {
     predictionTitle: 'Detected Condition',
     faultTitle: 'Diagnosis',
   },
-  overheating: {
-    code: 'overheating',
+  Overheating: {
+    code: 'Overheating',
     diagnosis: 'Overheating',
     recommendedAction:
       'Motor temperature exceeds the safe operating limit. Turn off the motor immediately and inspect the cooling system before restarting.',
@@ -82,14 +85,57 @@ export const DETECTED_CONDITIONS = {
   },
 }
 
+/** Legacy / alternate spellings → canonical code */
+const CONDITION_ALIASES = {
+  good100: 'Good100',
+  Good100: 'Good100',
+  good50: 'Good50',
+  Good50: 'Good50',
+  bearingAboutToFail: 'BearingAboutToFail',
+  BearingAboutToFail: 'BearingAboutToFail',
+  bearingFailure: 'BearingFail',
+  bearingFail: 'BearingFail',
+  BearingFail: 'BearingFail',
+  capacitorFailure: 'CapacitorFail',
+  capacitorFail: 'CapacitorFail',
+  CapacitorFail: 'CapacitorFail',
+  axisFailure: 'AxeFail',
+  axeFail: 'AxeFail',
+  AxeFail: 'AxeFail',
+  overheating: 'Overheating',
+  Overheating: 'Overheating',
+}
+
 export const DETECTED_CONDITION_CODES = Object.keys(DETECTED_CONDITIONS)
 
-export function getDetectedCondition(code) {
+export function normalizeDetectedConditionCode(code) {
   if (!code || typeof code !== 'string') {
     return null
   }
 
-  return DETECTED_CONDITIONS[code] ?? null
+  const trimmed = code.trim()
+  if (DETECTED_CONDITIONS[trimmed]) {
+    return trimmed
+  }
+
+  if (CONDITION_ALIASES[trimmed]) {
+    return CONDITION_ALIASES[trimmed]
+  }
+
+  const lowerMap = Object.fromEntries(
+    Object.entries(CONDITION_ALIASES).map(([key, value]) => [key.toLowerCase(), value]),
+  )
+
+  return lowerMap[trimmed.toLowerCase()] ?? null
+}
+
+export function getDetectedCondition(code) {
+  const normalized = normalizeDetectedConditionCode(code)
+  if (!normalized) {
+    return null
+  }
+
+  return DETECTED_CONDITIONS[normalized] ?? null
 }
 
 /**

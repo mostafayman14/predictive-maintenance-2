@@ -64,19 +64,19 @@ The frontend maps that code to:
 
 | `detectedCondition` | Diagnosis | Recommended Action | Severity |
 |---------------------|-----------|--------------------|----------|
-| `good100` | Healthy | Motor is operating normally. No maintenance is required. | Low |
-| `good50` | Aged Motor | Motor is operational but shows signs of aging. Schedule preventive maintenance. | Medium |
-| `bearingAboutToFail` | Bearing Degradation | Bearing wear has been detected. Replace the bearing within 1–2 weeks to prevent unexpected failure. | High |
-| `bearingFailure` | Bearing Failure | Critical bearing failure detected. Stop operation and replace the bearing immediately. | Critical |
-| `capacitorFailure` | Capacitor Fault | Capacitor malfunction detected. Replace the capacitor as soon as possible. | High |
-| `axisFailure` | Shaft Wear | Shaft wear detected. Inspect the shaft and replace it if necessary. | High |
-| `overheating` | Overheating | Motor temperature exceeds the safe operating limit. Turn off the motor immediately and inspect the cooling system before restarting. | Critical |
+| `Good100` | Healthy | Motor is operating normally. No maintenance is required. | Low |
+| `Good50` | Aged Motor | Motor is operational but shows signs of aging. Schedule preventive maintenance. | Medium |
+| `BearingAboutToFail` | Bearing Degradation | Bearing wear has been detected. Replace the bearing within 1–2 weeks to prevent unexpected failure. | High |
+| `BearingFail` | Bearing Failure | Critical bearing failure detected. Stop operation and replace the bearing immediately. | Critical |
+| `CapacitorFail` | Capacitor Fault | Capacitor malfunction detected. Replace the capacitor as soon as possible. | High |
+| `AxeFail` | Shaft Wear | Shaft wear detected. Inspect the shaft and replace it if necessary. | High |
+| `Overheating` | Overheating | Motor temperature exceeds the safe operating limit. Turn off the motor immediately and inspect the cooling system before restarting. | Critical |
 
 ### Minimal live payload (recommended for Raspberry Pi)
 
 ```json
 {
-  "detectedCondition": "bearingFailure",
+  "detectedCondition": "BearingFail",
   "temperature": { "timestamp": 1751558400000, "value": 68.2 },
   "vibration":   { "timestamp": 1751558400000, "value": 3.4 },
   "sound":       { "timestamp": 1751558400000, "value": 72.1 },
@@ -88,7 +88,7 @@ The frontend maps that code to:
 
 ```json
 {
-  "detectedCondition": "overheating",
+  "detectedCondition": "Overheating",
   "diagnosis": "Overheating",
   "recommendedAction": "Motor temperature exceeds the safe operating limit. Turn off the motor immediately and inspect the cooling system before restarting."
 }
@@ -232,7 +232,7 @@ No body.
 
 ```json
 {
-  "detectedCondition": "good100",
+  "detectedCondition": "Good100",
   "diagnosis": "Healthy",
   "recommendedAction": "Motor is operating normally. No maintenance is required.",
   "sensors": [
@@ -472,7 +472,7 @@ Each sensor carries its **own** timestamp and value, plus `detectedCondition`:
 
 ```json
 {
-  "detectedCondition": "good100",
+  "detectedCondition": "Good100",
   "temperature": { "timestamp": 1751558400000, "value": 68.2 },
   "vibration":   { "timestamp": 1751558400000, "value": 3.4 },
   "sound":       { "timestamp": 1751558400000, "value": 72.1 },
@@ -631,7 +631,7 @@ NOW=$(python3 -c "import time; print(int(time.time()*1000))")
 curl -s -X POST "$BASE/live" \
   -H "Content-Type: application/json" \
   -d "{
-    \"detectedCondition\": \"bearingFailure\",
+    \"detectedCondition\": \"BearingFail\",
     \"temperature\": {\"timestamp\": $NOW, \"value\": 72.5},
     \"vibration\":   {\"timestamp\": $NOW, \"value\": 3.8},
     \"sound\":       {\"timestamp\": $NOW, \"value\": 74.0},

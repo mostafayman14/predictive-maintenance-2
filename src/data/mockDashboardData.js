@@ -99,7 +99,7 @@ export const dashboardMockData = {
     description: 'Motor is operating normally. No maintenance is required.',
     variant: 'success',
   },
-  detectedCondition: 'good100',
+  detectedCondition: 'Good100',
   recommendations: [
     {
       title: 'Recommended Action',
@@ -113,7 +113,7 @@ export const dashboardMockData = {
     },
     {
       title: 'Condition Code',
-      content: 'good100',
+      content: 'Good100',
       value: 'item-2',
     },
   ],
