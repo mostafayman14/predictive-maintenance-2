@@ -15,7 +15,10 @@ function FaultCard({
   icon: Icon = AlertTriangle,
   delay = 0,
 }) {
-  const isAlert = variant === 'warning' || severity?.toLowerCase() === 'high'
+  const isAlert =
+    variant === 'warning' ||
+    severity?.toLowerCase() === 'high' ||
+    severity?.toLowerCase() === 'critical'
 
   return (
     <AnimatedCard delay={delay} layout className="relative overflow-hidden">

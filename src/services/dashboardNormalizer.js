@@ -1,3 +1,4 @@
+import { applyDetectedCondition, extractDetectedCondition } from './conditionNormalizer'
 import { mergeLiveIntoDashboard } from './liveDataNormalizer'
 
 export function getPayload(resourceData) {
@@ -47,7 +48,7 @@ export function buildDashboardData({
   liveConnection,
   liveLastUpdate,
 }) {
-  const baseData = {
+  let baseData = {
     ...fallbackData,
     connection: normalizeConnection(statusPayload, fallbackData.connection),
     overview: statusPayload.overview ?? fallbackData.overview,
@@ -64,6 +65,18 @@ export function buildDashboardData({
     systemInfo: normalizeSystemInfo(systemInfoPayload, fallbackData.systemInfo),
     systemInfoCard: systemInfoPayload.systemInfoCard ?? fallbackData.systemInfoCard,
     connectionCard: systemInfoPayload.connectionCard ?? fallbackData.connectionCard,
+    detectedCondition: fallbackData.detectedCondition ?? null,
+  }
+
+  // Map detectedCondition → diagnosis / recommended action / UI cards.
+  // Priority: live poll > status > recommendations.
+  const conditionSource =
+    (livePatch?.detectedCondition ? { detectedCondition: livePatch.detectedCondition } : null) ??
+    (extractDetectedCondition(statusPayload) ? statusPayload : null) ??
+    (extractDetectedCondition(recommendationsPayload) ? recommendationsPayload : null)
+
+  if (conditionSource) {
+    baseData = applyDetectedCondition(baseData, conditionSource, fallbackData)
   }
 
   const merged = mergeLiveIntoDashboard(baseData, livePatch)

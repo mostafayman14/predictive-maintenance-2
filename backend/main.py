@@ -54,6 +54,101 @@ DECIMALS = {
 
 SIMULATION_START = time.time()
 latest_manual_readings: dict[str, dict[str, float | int]] | None = None
+latest_detected_condition: str = "good100"
+
+CONDITION_CATALOG = {
+    "good100": {
+        "diagnosis": "Healthy",
+        "recommendedAction": "Motor is operating normally. No maintenance is required.",
+        "severity": "Low",
+        "variant": "success",
+        "probability": 100,
+    },
+    "good50": {
+        "diagnosis": "Aged Motor",
+        "recommendedAction": "Motor is operational but shows signs of aging. Schedule preventive maintenance.",
+        "severity": "Medium",
+        "variant": "warning",
+        "probability": 50,
+    },
+    "bearingAboutToFail": {
+        "diagnosis": "Bearing Degradation",
+        "recommendedAction": "Bearing wear has been detected. Replace the bearing within 1–2 weeks to prevent unexpected failure.",
+        "severity": "High",
+        "variant": "warning",
+        "probability": 75,
+    },
+    "bearingFailure": {
+        "diagnosis": "Bearing Failure",
+        "recommendedAction": "Critical bearing failure detected. Stop operation and replace the bearing immediately.",
+        "severity": "Critical",
+        "variant": "warning",
+        "probability": 95,
+    },
+    "capacitorFailure": {
+        "diagnosis": "Capacitor Fault",
+        "recommendedAction": "Capacitor malfunction detected. Replace the capacitor as soon as possible.",
+        "severity": "High",
+        "variant": "warning",
+        "probability": 90,
+    },
+    "axisFailure": {
+        "diagnosis": "Shaft Wear",
+        "recommendedAction": "Shaft wear detected. Inspect the shaft and replace it if necessary.",
+        "severity": "High",
+        "variant": "warning",
+        "probability": 85,
+    },
+    "overheating": {
+        "diagnosis": "Overheating",
+        "recommendedAction": "Motor temperature exceeds the safe operating limit. Turn off the motor immediately and inspect the cooling system before restarting.",
+        "severity": "Critical",
+        "variant": "warning",
+        "probability": 98,
+    },
+}
+
+
+def build_condition_payload(code: str) -> dict[str, Any]:
+    condition = CONDITION_CATALOG.get(code, CONDITION_CATALOG["good100"])
+    resolved = code if code in CONDITION_CATALOG else "good100"
+
+    return {
+        "detectedCondition": resolved,
+        "diagnosis": condition["diagnosis"],
+        "recommendedAction": condition["recommendedAction"],
+        "prediction": {
+            "title": "Detected Condition",
+            "prediction": condition["diagnosis"],
+            "probability": condition["probability"],
+            "description": condition["recommendedAction"],
+            "variant": condition["variant"],
+        },
+        "fault": {
+            "title": "Diagnosis",
+            "fault": condition["diagnosis"],
+            "severity": condition["severity"],
+            "description": condition["recommendedAction"],
+            "variant": condition["variant"],
+        },
+        "recommendations": [
+            {
+                "title": "Recommended Action",
+                "content": condition["recommendedAction"],
+                "value": "item-0",
+            },
+            {
+                "title": "Diagnosis",
+                "content": condition["diagnosis"],
+                "value": "item-1",
+            },
+            {
+                "title": "Condition Code",
+                "content": resolved,
+                "value": "item-2",
+            },
+        ],
+    }
 
 
 def now_ms() -> int:
@@ -166,22 +261,14 @@ def build_sensor_cards(payload: dict[str, dict[str, float | int]]) -> list[dict[
 @app.get("/api/v1/status")
 def get_status():
     payload = simulate_live_payload()
+    condition = build_condition_payload(latest_detected_condition)
     return {
         "sensors": build_sensor_cards(payload),
-        "prediction": {
-            "title": "PredictionCard",
-            "prediction": "Normal Operation",
-            "probability": 91,
-            "description": "Latest model output",
-            "variant": "success",
-        },
-        "fault": {
-            "title": "FaultCard",
-            "fault": "No critical fault detected",
-            "severity": "Low",
-            "description": "Current diagnostic state",
-            "variant": "success",
-        },
+        "detectedCondition": condition["detectedCondition"],
+        "diagnosis": condition["diagnosis"],
+        "recommendedAction": condition["recommendedAction"],
+        "prediction": condition["prediction"],
+        "fault": condition["fault"],
     }
 
 
@@ -192,17 +279,13 @@ def get_history():
 
 @app.get("/api/v1/recommendations")
 def get_recommendations():
+    condition = build_condition_payload(latest_detected_condition)
     return {
-        "recommendations": [
-            {
-                "title": "Inspect vibration mounting",
-                "content": "Validate that the sensor mount is secure before long runtime testing.",
-            },
-            {
-                "title": "Schedule bearing review",
-                "content": "Plan a mechanical inspection during the next maintenance window.",
-            },
-        ]
+        "detectedCondition": condition["detectedCondition"],
+        "diagnosis": condition["diagnosis"],
+        "recommendedAction": condition["recommendedAction"],
+        "fault": condition["fault"],
+        "recommendations": condition["recommendations"],
     }
 
 
@@ -213,6 +296,7 @@ def get_system_info():
             {"label": "Device", "value": "Raspberry Pi 4"},
             {"label": "Firmware", "value": "v1.0.0"},
             {"label": "Model", "value": "Mock API (local dev)"},
+            {"label": "Detected Condition", "value": latest_detected_condition},
         ],
         "systemInfoCard": {
             "title": "System Info",
@@ -229,24 +313,32 @@ def post_live(body: dict[str, Any] = Body(default_factory=dict)):
     Empty body {}  -> simulated wave data (good for dashboard graphs).
     With values    -> use your real readings; dashboard picks them up on next poll.
 
-    Example:
+    Include detectedCondition so the dashboard maps diagnosis + recommended action:
+
       {
+        "detectedCondition": "bearingFailure",
         "temperature": {"timestamp": 1751558400000, "value": 70.5},
         "vibration": {"value": 3.8},
         "sound": {"value": 74.0},
         "current": {"value": 12.1}
       }
     """
-    global latest_manual_readings
+    global latest_manual_readings, latest_detected_condition
 
     ts = now_ms()
     manual = readings_from_body(body, ts)
 
+    incoming_condition = body.get("detectedCondition") or body.get("detected_condition")
+    if isinstance(incoming_condition, str) and incoming_condition in CONDITION_CATALOG:
+        latest_detected_condition = incoming_condition
+
+    condition = build_condition_payload(latest_detected_condition)
+
     if manual:
         latest_manual_readings = manual
         if len(manual) == len(SENSOR_KEYS):
-            return manual
-        return merge_with_simulation(manual, ts)
+            return {**manual, **condition}
+        return {**merge_with_simulation(manual, ts), **condition}
 
     if latest_manual_readings:
         refreshed = {
@@ -254,15 +346,19 @@ def post_live(body: dict[str, Any] = Body(default_factory=dict)):
             for key, reading in latest_manual_readings.items()
         }
         if len(refreshed) == len(SENSOR_KEYS):
-            return refreshed
-        return merge_with_simulation(refreshed, ts)
+            return {**refreshed, **condition}
+        return {**merge_with_simulation(refreshed, ts), **condition}
 
-    return simulate_live_payload(ts)
+    return {**simulate_live_payload(ts), **condition}
 
 
 @app.delete("/api/v1/live")
 def clear_manual_readings():
-    """Switch back to automatic simulation."""
-    global latest_manual_readings
+    """Switch back to automatic simulation and healthy condition."""
+    global latest_manual_readings, latest_detected_condition
     latest_manual_readings = None
-    return {"message": "Manual readings cleared. Using simulation again."}
+    latest_detected_condition = "good100"
+    return {
+        "message": "Manual readings cleared. Using simulation again.",
+        "detectedCondition": latest_detected_condition,
+    }

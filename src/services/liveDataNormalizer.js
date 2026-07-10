@@ -1,3 +1,5 @@
+import { buildConditionUi } from '../constants/detectedConditions'
+import { extractDetectedCondition } from './conditionNormalizer'
 import { mergeChartPoints } from '../lib/chartUtils'
 
 const SENSOR_KEYS = {
@@ -83,13 +85,19 @@ function normalizeIncomingPayload(payload) {
   const topTimestamp = data.timestamp ?? data.lastUpdate ?? null
   const fallbackTimestamp = topTimestamp ? new Date(topTimestamp).getTime() : Date.now()
 
+  const detectedCondition = extractDetectedCondition(data)
+  const conditionUi = detectedCondition ? buildConditionUi(detectedCondition) : null
+
   return {
     temperature: readSensor(data, 'temperature', fallbackTimestamp),
     vibration: readSensor(data, 'vibration', fallbackTimestamp),
     sound: readSensor(data, 'sound', fallbackTimestamp),
     current: readSensor(data, 'current', fallbackTimestamp),
     sensorStatus: data.sensorStatus ?? data.sensors ?? null,
-    prediction: data.prediction ?? null,
+    detectedCondition,
+    prediction: conditionUi?.prediction ?? data.prediction ?? null,
+    fault: conditionUi?.fault ?? data.fault ?? null,
+    recommendations: conditionUi?.recommendations ?? data.recommendations ?? null,
     healthScore: data.healthScore ?? null,
     confidence: data.confidence ?? null,
     charts: data.charts ?? null,
@@ -157,6 +165,7 @@ function mergeLiveIntoDashboard(baseData, livePatch) {
     ...baseData,
     sensors,
     charts: nextCharts,
+    detectedCondition: livePatch.detectedCondition ?? baseData.detectedCondition,
     healthScore: livePatch.healthScore
       ? { ...baseData.healthScore, ...livePatch.healthScore }
       : baseData.healthScore,
@@ -166,6 +175,10 @@ function mergeLiveIntoDashboard(baseData, livePatch) {
     prediction: livePatch.prediction
       ? { ...baseData.prediction, ...livePatch.prediction }
       : baseData.prediction,
+    fault: livePatch.fault
+      ? { ...baseData.fault, ...livePatch.fault }
+      : baseData.fault,
+    recommendations: livePatch.recommendations ?? baseData.recommendations,
     lastUpdate: timestamp,
   }
 }
@@ -236,9 +249,14 @@ function createLivePatch(previousPatch, payload) {
     sound,
     current,
     sensorStatus: normalized.sensorStatus ?? previousPatch.sensorStatus,
+    detectedCondition: normalized.detectedCondition ?? previousPatch.detectedCondition,
     prediction: normalized.prediction
       ? { ...(previousPatch.prediction ?? {}), ...normalized.prediction }
       : previousPatch.prediction,
+    fault: normalized.fault
+      ? { ...(previousPatch.fault ?? {}), ...normalized.fault }
+      : previousPatch.fault,
+    recommendations: normalized.recommendations ?? previousPatch.recommendations,
     healthScore: normalized.healthScore
       ? { ...(previousPatch.healthScore ?? {}), ...normalized.healthScore }
       : previousPatch.healthScore,
@@ -260,7 +278,10 @@ const initialLivePatch = {
   sound: { value: null, timestamp: null },
   current: { value: null, timestamp: null },
   sensorStatus: null,
+  detectedCondition: null,
   prediction: null,
+  fault: null,
+  recommendations: null,
   healthScore: null,
   confidence: null,
   charts: null,

@@ -50,6 +50,75 @@ Live updates (if enabled):
 
 ---
 
+## Detected condition (Raspberry Pi prediction)
+
+The Raspberry Pi / ML model should send a single code: **`detectedCondition`**.
+
+The frontend maps that code to:
+
+- **Diagnosis** (shown on Prediction + Fault cards)
+- **Recommended Action** (shown as description + recommendations accordion)
+- severity / variant / probability for badges
+
+### Allowed codes
+
+| `detectedCondition` | Diagnosis | Recommended Action | Severity |
+|---------------------|-----------|--------------------|----------|
+| `good100` | Healthy | Motor is operating normally. No maintenance is required. | Low |
+| `good50` | Aged Motor | Motor is operational but shows signs of aging. Schedule preventive maintenance. | Medium |
+| `bearingAboutToFail` | Bearing Degradation | Bearing wear has been detected. Replace the bearing within 1–2 weeks to prevent unexpected failure. | High |
+| `bearingFailure` | Bearing Failure | Critical bearing failure detected. Stop operation and replace the bearing immediately. | Critical |
+| `capacitorFailure` | Capacitor Fault | Capacitor malfunction detected. Replace the capacitor as soon as possible. | High |
+| `axisFailure` | Shaft Wear | Shaft wear detected. Inspect the shaft and replace it if necessary. | High |
+| `overheating` | Overheating | Motor temperature exceeds the safe operating limit. Turn off the motor immediately and inspect the cooling system before restarting. | Critical |
+
+### Minimal live payload (recommended for Raspberry Pi)
+
+```json
+{
+  "detectedCondition": "bearingFailure",
+  "temperature": { "timestamp": 1751558400000, "value": 68.2 },
+  "vibration":   { "timestamp": 1751558400000, "value": 3.4 },
+  "sound":       { "timestamp": 1751558400000, "value": 72.1 },
+  "current":     { "timestamp": 1751558400000, "value": 11.8 }
+}
+```
+
+### Status / recommendations payload with condition
+
+```json
+{
+  "detectedCondition": "overheating",
+  "diagnosis": "Overheating",
+  "recommendedAction": "Motor temperature exceeds the safe operating limit. Turn off the motor immediately and inspect the cooling system before restarting."
+}
+```
+
+> `diagnosis` and `recommendedAction` are optional in the response.  
+> If only `detectedCondition` is sent, the frontend fills the rest from its catalog.
+
+### How the UI maps fields
+
+| UI card | Field | Source |
+|---------|-------|--------|
+| Prediction card title | `Detected Condition` | catalog |
+| Prediction main text | Diagnosis | catalog / `diagnosis` |
+| Prediction description | Recommended Action | catalog / `recommendedAction` |
+| Fault card title | `Diagnosis` | catalog |
+| Fault main text | Diagnosis | catalog |
+| Fault severity badge | Low / Medium / High / Critical | catalog |
+| Recommendations accordion | Recommended Action + Diagnosis + Condition Code | catalog |
+
+### Priority
+
+When multiple sources send a condition:
+
+1. `POST /live` → `detectedCondition` (highest — live updates)
+2. `GET /status` → `detectedCondition`
+3. `GET /recommendations` → `detectedCondition`
+
+---
+
 ## General rules
 
 ### Headers
@@ -163,6 +232,9 @@ No body.
 
 ```json
 {
+  "detectedCondition": "good100",
+  "diagnosis": "Healthy",
+  "recommendedAction": "Motor is operating normally. No maintenance is required.",
   "sensors": [
     {
       "title": "Temperature Sensor",
@@ -193,40 +265,18 @@ No body.
       "variant": "success"
     }
   ],
-  "overview": {
-    "title": "Motor Runtime",
-    "value": "4.2 h",
-    "description": "Since last maintenance",
-    "trend": "Stable",
-    "variant": "success"
-  },
-  "healthScore": {
-    "title": "Health Score",
-    "score": 87,
-    "maxScore": 100,
-    "description": "Overall motor condition",
-    "status": "Good",
-    "variant": "success"
-  },
-  "confidence": {
-    "title": "Model Confidence",
-    "value": 91,
-    "description": "Prediction reliability",
-    "status": "High",
-    "variant": "success"
-  },
   "prediction": {
-    "title": "PredictionCard",
-    "prediction": "Normal Operation",
-    "probability": 91,
-    "description": "Latest model output",
+    "title": "Detected Condition",
+    "prediction": "Healthy",
+    "probability": 100,
+    "description": "Motor is operating normally. No maintenance is required.",
     "variant": "success"
   },
   "fault": {
-    "title": "FaultCard",
-    "fault": "No critical fault detected",
+    "title": "Diagnosis",
+    "fault": "Healthy",
     "severity": "Low",
-    "description": "Current diagnostic state",
+    "description": "Motor is operating normally. No maintenance is required.",
     "variant": "success"
   }
 }
@@ -236,9 +286,10 @@ No body.
 
 | Field | Required | Used in UI |
 |-------|----------|------------|
+| `detectedCondition` | **Recommended** | Maps diagnosis + recommended action automatically |
 | `sensors` | Recommended | Sensor card values (fallback for charts) |
-| `prediction` | Recommended | Prediction card |
-| `fault` | Recommended | Fault card (can also come from `/recommendations`) |
+| `prediction` | Optional if `detectedCondition` sent | Prediction card |
+| `fault` | Optional if `detectedCondition` sent | Fault card |
 | `overview` | Optional | Not rendered in current layout |
 | `healthScore` | Optional | Not rendered in current layout |
 | `confidence` | Optional | Not rendered in current layout |
@@ -417,10 +468,11 @@ Default body is an empty object `{}`.
 
 #### Minimum response `200` (recommended)
 
-Each sensor carries its **own** timestamp and value:
+Each sensor carries its **own** timestamp and value, plus `detectedCondition`:
 
 ```json
 {
+  "detectedCondition": "good100",
   "temperature": { "timestamp": 1751558400000, "value": 68.2 },
   "vibration":   { "timestamp": 1751558400000, "value": 3.4 },
   "sound":       { "timestamp": 1751558400000, "value": 72.1 },
@@ -428,6 +480,7 @@ Each sensor carries its **own** timestamp and value:
 }
 ```
 
+The frontend maps `detectedCondition` → Diagnosis + Recommended Action automatically.
 #### Legacy format (still supported)
 
 ```json
@@ -570,7 +623,7 @@ curl -s "$BASE/system-info" | jq
 curl -s -X POST "$BASE/live" -H "Content-Type: application/json" -d '{}' | jq
 ```
 
-### Send real sensor data
+### Send real sensor data + condition
 
 ```bash
 NOW=$(python3 -c "import time; print(int(time.time()*1000))")
@@ -578,6 +631,7 @@ NOW=$(python3 -c "import time; print(int(time.time()*1000))")
 curl -s -X POST "$BASE/live" \
   -H "Content-Type: application/json" \
   -d "{
+    \"detectedCondition\": \"bearingFailure\",
     \"temperature\": {\"timestamp\": $NOW, \"value\": 72.5},
     \"vibration\":   {\"timestamp\": $NOW, \"value\": 3.8},
     \"sound\":       {\"timestamp\": $NOW, \"value\": 74.0},
