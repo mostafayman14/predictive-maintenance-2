@@ -1,6 +1,6 @@
 import { buildConditionUi, normalizeDetectedConditionCode } from '../constants/detectedConditions'
 
-export const OVERHEATING_TEMP_THRESHOLD = 80
+export const OVERHEATING_TEMP_THRESHOLD = 20
 
 /**
  * Reads `detectedCondition` from a payload (top-level or nested under prediction).
