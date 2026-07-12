@@ -14,8 +14,8 @@ export function formatSensorValue(value, unit) {
     return `${display}${unit}`
   }
 
-  if (unit === '×10³') {
-    return `${display}×10³`
+  if (unit === '10^-3') {
+    return `${display}×10^-3`
   }
 
   return `${display} ${unit}`

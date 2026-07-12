@@ -17,7 +17,7 @@ const SENSOR_CHART_KEYS = ['temperature', 'vibration', 'sound', 'current']
 const SENSOR_UNITS = {
   temperature: '°C',
   vibration: 'mm/s',
-  sound: '×10³',
+  sound: '10^-3',
   current: 'mA',
 }
 

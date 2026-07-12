@@ -1,4 +1,4 @@
-import { applyDetectedCondition, extractDetectedCondition } from './conditionNormalizer'
+import { applyDetectedCondition, applyResolvedCondition, extractDetectedCondition } from './conditionNormalizer'
 import { mergeLiveIntoDashboard } from './liveDataNormalizer'
 
 export function getPayload(resourceData) {
@@ -77,15 +77,31 @@ export function buildDashboardData({
     (extractDetectedCondition(recommendationsPayload) ? recommendationsPayload : null)
 
   if (conditionSource) {
-    baseData = applyDetectedCondition(baseData, conditionSource, fallbackData)
+    baseData = applyResolvedCondition(
+      applyDetectedCondition(baseData, conditionSource, fallbackData),
+      {
+        temperature: livePatch?.temperature,
+        detectedCondition: extractDetectedCondition(conditionSource),
+        sensors: baseData.sensors,
+      },
+      fallbackData,
+    )
   }
 
   const merged = mergeLiveIntoDashboard(baseData, livePatch)
 
-  return {
-    ...merged,
-    charts: chartSeries ?? merged.charts,
-    connection: liveConnection,
-    lastUpdate: liveLastUpdate ?? chartLastUpdate ?? merged.lastUpdate,
-  }
+  return applyResolvedCondition(
+    {
+      ...merged,
+      charts: chartSeries ?? merged.charts,
+      connection: liveConnection,
+      lastUpdate: liveLastUpdate ?? chartLastUpdate ?? merged.lastUpdate,
+    },
+    {
+      temperature: livePatch?.temperature,
+      detectedCondition: merged.detectedCondition,
+      sensors: merged.sensors,
+    },
+    fallbackData,
+  )
 }

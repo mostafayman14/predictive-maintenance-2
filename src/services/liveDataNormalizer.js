@@ -1,5 +1,9 @@
 import { buildConditionUi } from '../constants/detectedConditions'
-import { extractDetectedCondition } from './conditionNormalizer'
+import {
+  applyResolvedCondition,
+  extractDetectedCondition,
+  resolveDetectedCondition,
+} from './conditionNormalizer'
 
 const SENSOR_KEYS = {
   temperature: 'Temperature Sensor',
@@ -73,11 +77,13 @@ function normalizeIncomingPayload(payload) {
   const topTimestamp = data.timestamp ?? data.lastUpdate ?? null
   const fallbackTimestamp = topTimestamp ? new Date(topTimestamp).getTime() : Date.now()
 
-  const detectedCondition = extractDetectedCondition(data)
+  const temperature = readSensor(data, 'temperature', fallbackTimestamp)
+  const apiCondition = extractDetectedCondition(data)
+  const detectedCondition = resolveDetectedCondition(temperature.value, apiCondition)
   const conditionUi = detectedCondition ? buildConditionUi(detectedCondition) : null
 
   return {
-    temperature: readSensor(data, 'temperature', fallbackTimestamp),
+    temperature,
     vibration: readSensor(data, 'vibration', fallbackTimestamp),
     sound: readSensor(data, 'sound', fallbackTimestamp),
     current: readSensor(data, 'current', fallbackTimestamp),
@@ -134,25 +140,31 @@ function mergeLiveIntoDashboard(baseData, livePatch) {
     )
   }
 
-  return {
-    ...baseData,
-    sensors,
-    // Chart series are owned by ChartDataContext — do not re-merge here.
-    charts: baseData.charts,
-    detectedCondition: livePatch.detectedCondition ?? baseData.detectedCondition,
-    healthScore: livePatch.healthScore
-      ? { ...baseData.healthScore, ...livePatch.healthScore }
-      : baseData.healthScore,
-    confidence: livePatch.confidence
-      ? { ...baseData.confidence, ...livePatch.confidence }
-      : baseData.confidence,
-    prediction: livePatch.prediction
-      ? { ...baseData.prediction, ...livePatch.prediction }
-      : baseData.prediction,
-    fault: livePatch.fault ? { ...baseData.fault, ...livePatch.fault } : baseData.fault,
-    recommendations: livePatch.recommendations ?? baseData.recommendations,
-    lastUpdate: timestamp,
-  }
+  return applyResolvedCondition(
+    {
+      ...baseData,
+      sensors,
+      charts: baseData.charts,
+      detectedCondition: livePatch.detectedCondition ?? baseData.detectedCondition,
+      healthScore: livePatch.healthScore
+        ? { ...baseData.healthScore, ...livePatch.healthScore }
+        : baseData.healthScore,
+      confidence: livePatch.confidence
+        ? { ...baseData.confidence, ...livePatch.confidence }
+        : baseData.confidence,
+      prediction: livePatch.prediction
+        ? { ...baseData.prediction, ...livePatch.prediction }
+        : baseData.prediction,
+      fault: livePatch.fault ? { ...baseData.fault, ...livePatch.fault } : baseData.fault,
+      recommendations: livePatch.recommendations ?? baseData.recommendations,
+      lastUpdate: timestamp,
+    },
+    {
+      temperature,
+      detectedCondition: livePatch.detectedCondition ?? baseData.detectedCondition,
+      sensors,
+    },
+  )
 }
 
 function mapConnectionStatus(liveStatus, fallbackConnection, liveError) {

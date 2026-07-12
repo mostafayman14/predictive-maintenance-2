@@ -74,9 +74,9 @@ export const DETECTED_CONDITIONS = {
   },
   Overheating: {
     code: 'Overheating',
-    diagnosis: 'Overheating',
+    diagnosis: 'Over Heating',
     recommendedAction:
-      'Motor temperature exceeds the safe operating limit. Turn off the motor immediately and inspect the cooling system before restarting.',
+      'Motor temperature exceeds 80°C. Stop the motor immediately, allow it to cool, and inspect ventilation and load before restarting.',
     severity: 'Critical',
     variant: 'warning',
     probability: 98,
@@ -104,6 +104,8 @@ const CONDITION_ALIASES = {
   AxeFail: 'AxeFail',
   overheating: 'Overheating',
   Overheating: 'Overheating',
+  'Over Heating': 'Overheating',
+  overHeating: 'Overheating',
 }
 
 export const DETECTED_CONDITION_CODES = Object.keys(DETECTED_CONDITIONS)

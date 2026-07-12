@@ -122,7 +122,7 @@ export function createEmptyCharts() {
     },
     sound: {
       title: 'Sound',
-      unit: '×10³',
+      unit: '10^-3',
       color: '#059669',
       points: [],
     },

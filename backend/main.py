@@ -20,7 +20,7 @@ SENSOR_KEYS = ("temperature", "vibration", "sound", "current")
 CHART_META = {
     "temperature": {"title": "Temperature", "unit": "°C", "color": "#0891b2"},
     "vibration": {"title": "Vibration", "unit": "mm/s", "color": "#7c3aed"},
-    "sound": {"title": "Sound", "unit": "×10³", "color": "#059669"},
+    "sound": {"title": "Sound", "unit": "10^-3", "color": "#059669"},
     "current": {"title": "Current", "unit": "mA", "color": "#d97706"},
 }
 
@@ -100,8 +100,8 @@ CONDITION_CATALOG = {
         "probability": 85,
     },
     "Overheating": {
-        "diagnosis": "Overheating",
-        "recommendedAction": "Motor temperature exceeds the safe operating limit. Turn off the motor immediately and inspect the cooling system before restarting.",
+        "diagnosis": "Over Heating",
+        "recommendedAction": "Motor temperature exceeds 80°C. Stop the motor immediately, allow it to cool, and inspect ventilation and load before restarting.",
         "severity": "Critical",
         "variant": "warning",
         "probability": 98,
@@ -119,7 +119,11 @@ CONDITION_ALIASES = {
     "axisFailure": "AxeFail",
     "axeFail": "AxeFail",
     "overheating": "Overheating",
+    "Over Heating": "Overheating",
 }
+
+
+OVERHEATING_TEMP_THRESHOLD = 80
 
 
 def resolve_condition_code(code: str | None) -> str:
@@ -136,6 +140,12 @@ def resolve_condition_code(code: str | None) -> str:
 
     lower_map = {key.lower(): key for key in CONDITION_CATALOG}
     return lower_map.get(trimmed.lower(), "Good100")
+
+
+def resolve_detected_condition(temperature: float | None, code: str | None) -> str:
+    if temperature is not None and temperature > OVERHEATING_TEMP_THRESHOLD:
+        return "Overheating"
+    return resolve_condition_code(code)
 
 
 def build_condition_payload(code: str) -> dict[str, Any]:
@@ -259,7 +269,7 @@ def build_sensor_cards(payload: dict[str, dict[str, float | int]]) -> list[dict[
     status_map = {
         "temperature": ("Temperature Sensor", "°C"),
         "vibration": ("Vibration Sensor", "mm/s"),
-        "sound": ("Sound Sensor", "×10³"),
+        "sound": ("Sound Sensor", "10^-3"),
         "current": ("Current Sensor", "mA"),
     }
 
@@ -282,7 +292,9 @@ def build_sensor_cards(payload: dict[str, dict[str, float | int]]) -> list[dict[
 @app.get("/api/v1/status")
 def get_status():
     payload = simulate_live_payload()
-    condition = build_condition_payload(latest_detected_condition)
+    values = latest_values(payload)
+    resolved = resolve_detected_condition(values.get("temperature"), latest_detected_condition)
+    condition = build_condition_payload(resolved)
     return {
         "sensors": build_sensor_cards(payload),
         "detectedCondition": condition["detectedCondition"],
@@ -290,6 +302,7 @@ def get_status():
         "recommendedAction": condition["recommendedAction"],
         "prediction": condition["prediction"],
         "fault": condition["fault"],
+        "recommendations": condition["recommendations"],
     }
 
 
@@ -300,7 +313,10 @@ def get_history():
 
 @app.get("/api/v1/recommendations")
 def get_recommendations():
-    condition = build_condition_payload(latest_detected_condition)
+    payload = latest_manual_readings or simulate_live_payload()
+    values = latest_values(payload)
+    resolved = resolve_detected_condition(values.get("temperature"), latest_detected_condition)
+    condition = build_condition_payload(resolved)
     return {
         "detectedCondition": condition["detectedCondition"],
         "diagnosis": condition["diagnosis"],
@@ -353,13 +369,16 @@ def post_live(body: dict[str, Any] = Body(default_factory=dict)):
     if isinstance(incoming_condition, str):
         latest_detected_condition = resolve_condition_code(incoming_condition)
 
-    condition = build_condition_payload(latest_detected_condition)
+    def build_live_response(readings: dict[str, dict[str, float | int]]) -> dict[str, Any]:
+        values = latest_values(readings)
+        resolved = resolve_detected_condition(values.get("temperature"), latest_detected_condition)
+        return {**readings, **build_condition_payload(resolved)}
 
     if manual:
         latest_manual_readings = manual
         if len(manual) == len(SENSOR_KEYS):
-            return {**manual, **condition}
-        return {**merge_with_simulation(manual, ts), **condition}
+            return build_live_response(manual)
+        return build_live_response(merge_with_simulation(manual, ts))
 
     if latest_manual_readings:
         refreshed = {
@@ -367,10 +386,10 @@ def post_live(body: dict[str, Any] = Body(default_factory=dict)):
             for key, reading in latest_manual_readings.items()
         }
         if len(refreshed) == len(SENSOR_KEYS):
-            return {**refreshed, **condition}
-        return {**merge_with_simulation(refreshed, ts), **condition}
+            return build_live_response(refreshed)
+        return build_live_response(merge_with_simulation(refreshed, ts))
 
-    return {**simulate_live_payload(ts), **condition}
+    return build_live_response(simulate_live_payload(ts))
 
 
 @app.delete("/api/v1/live")
