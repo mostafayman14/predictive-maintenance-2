@@ -13,7 +13,12 @@ const LiveChartsSection = lazy(() =>
   })),
 )
 
-const DashboardPage = memo(function DashboardPage({ data, apiState, connectionStatus }) {
+const DashboardPage = memo(function DashboardPage({
+  data,
+  apiState,
+  connectionStatus,
+  chartsLoading = false,
+}) {
   return (
     <motion.main
       className="space-y-6 p-4 sm:p-6"
@@ -59,6 +64,7 @@ const DashboardPage = memo(function DashboardPage({ data, apiState, connectionSt
             charts={data.charts}
             sensors={data.sensors}
             connectionStatus={connectionStatus}
+            isLoading={chartsLoading}
           />
         </Suspense>
       </motion.div>

@@ -12,6 +12,7 @@ import {
 } from 'recharts'
 
 import {
+  CHART_WINDOW_HOURS,
   formatChartTime,
   getChartWindowDomain,
   normalizeChartDataset,
@@ -141,18 +142,17 @@ const LiveLineChart = memo(function LiveLineChart({
   unit,
   dataset,
   points,
-  data,
   reading,
   color = '#0891b2',
   icon: Icon,
-  windowSeconds = 60,
+  windowSeconds,
   delay = 0,
   isLoading = false,
   connectionStatus = 'disconnected',
 }) {
   const normalizedDataset = useMemo(
-    () => normalizeChartDataset(dataset ?? points, data),
-    [dataset, points, data],
+    () => normalizeChartDataset(dataset ?? points ?? []),
+    [dataset, points],
   )
 
   const chartData = useMemo(
@@ -276,7 +276,7 @@ const LiveLineChart = memo(function LiveLineChart({
           animate={{ opacity: 1 }}
           transition={{ ...transition, delay: 0.15 }}
         >
-          Last {windowSeconds}s · auto-scroll
+          Last {windowSeconds ? `${windowSeconds}s` : `${CHART_WINDOW_HOURS}h`} · rolling window
         </motion.p>
       </CardContent>
     </AnimatedCard>

@@ -5,15 +5,14 @@ import { useApiResource } from './useApiResource'
 
 function useDashboardApi() {
   const status = useApiResource(useCallback(() => dashboardService.getStatus(), []))
-  const history = useApiResource(useCallback(() => dashboardService.getHistory(), []))
   const recommendations = useApiResource(
     useCallback(() => dashboardService.getRecommendations(), []),
   )
   const systemInfo = useApiResource(useCallback(() => dashboardService.getSystemInfo(), []))
 
   const resources = useMemo(
-    () => ({ status, history, recommendations, systemInfo }),
-    [status, history, recommendations, systemInfo],
+    () => ({ status, recommendations, systemInfo }),
+    [status, recommendations, systemInfo],
   )
 
   const isLoading = Object.values(resources).some((resource) => resource.isLoading)
@@ -24,6 +23,7 @@ function useDashboardApi() {
 
   return {
     ...resources,
+    history: { data: null, error: null, isLoading: false, isRetrying: false, retry: async () => null },
     isLoading,
     isRetrying,
     errors,

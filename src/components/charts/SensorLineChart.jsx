@@ -1,23 +1,31 @@
 import { memo } from 'react'
 
+import { createEmptyCharts } from '../../lib/chartUtils'
 import { LiveLineChart } from './LiveLineChart'
 
-const SensorLineChart = memo(function SensorLineChart({ config, chartData, reading, connectionStatus, delay = 0 }) {
-  if (!chartData) {
-    return null
-  }
+const emptyCharts = createEmptyCharts()
+
+const SensorLineChart = memo(function SensorLineChart({
+  config,
+  chartData,
+  reading,
+  connectionStatus,
+  isLoading = false,
+  delay = 0,
+}) {
+  const resolved = chartData ?? emptyCharts[config.key]
 
   return (
     <LiveLineChart
-      title={chartData.title}
-      unit={chartData.unit}
-      points={chartData.points}
-      dataset={chartData.dataset}
-      data={chartData.data}
+      title={resolved.title}
+      unit={resolved.unit}
+      points={resolved.points}
+      dataset={resolved.dataset}
       reading={reading}
-      color={chartData.color ?? config.color}
+      color={resolved.color ?? config.color}
       icon={config.icon}
       connectionStatus={connectionStatus}
+      isLoading={isLoading}
       delay={delay}
     />
   )

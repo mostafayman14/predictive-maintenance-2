@@ -1,6 +1,7 @@
 import { createContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import { getLivePollInterval, isLivePollingEnabled } from '../api/endpoints'
+import { useChartDataContext } from './ChartDataContext'
 import { dashboardService } from '../services/dashboardService'
 import {
   createLivePatch,
@@ -12,10 +13,16 @@ import { createLivePollingService } from '../services/livePollingService'
 const LiveDataContext = createContext(null)
 
 function LiveDataProvider({ children, fallbackConnection }) {
+  const { appendLiveReading } = useChartDataContext()
   const serviceRef = useRef(null)
+  const appendLiveReadingRef = useRef(appendLiveReading)
   const [livePatch, setLivePatch] = useState(initialLivePatch)
   const [connectionStatus, setConnectionStatus] = useState('disconnected')
   const [error, setError] = useState(null)
+
+  useEffect(() => {
+    appendLiveReadingRef.current = appendLiveReading
+  }, [appendLiveReading])
 
   useEffect(() => {
     if (!isLivePollingEnabled()) {
@@ -29,6 +36,7 @@ function LiveDataProvider({ children, fallbackConnection }) {
 
     const unsubscribeMessage = service.onMessage((payload) => {
       setLivePatch((previous) => createLivePatch(previous, payload))
+      appendLiveReadingRef.current?.(payload)
       setError(null)
     })
 

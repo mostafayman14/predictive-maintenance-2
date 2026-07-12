@@ -47,6 +47,8 @@ export function buildDashboardData({
   livePatch,
   liveConnection,
   liveLastUpdate,
+  chartSeries,
+  chartLastUpdate,
 }) {
   let baseData = {
     ...fallbackData,
@@ -55,7 +57,8 @@ export function buildDashboardData({
     sensors: statusPayload.sensors ?? historyPayload.sensors ?? fallbackData.sensors,
     healthScore: statusPayload.healthScore ?? fallbackData.healthScore,
     confidence: statusPayload.confidence ?? fallbackData.confidence,
-    charts: historyPayload.charts ?? fallbackData.charts,
+    // Chart series come from ChartDataContext memory, not history re-merge.
+    charts: chartSeries ?? fallbackData.charts,
     prediction: statusPayload.prediction ?? fallbackData.prediction,
     fault: recommendationsPayload.fault ?? statusPayload.fault ?? fallbackData.fault,
     recommendations:
@@ -68,8 +71,6 @@ export function buildDashboardData({
     detectedCondition: fallbackData.detectedCondition ?? null,
   }
 
-  // Map detectedCondition → diagnosis / recommended action / UI cards.
-  // Priority: live poll > status > recommendations.
   const conditionSource =
     (livePatch?.detectedCondition ? { detectedCondition: livePatch.detectedCondition } : null) ??
     (extractDetectedCondition(statusPayload) ? statusPayload : null) ??
@@ -83,7 +84,8 @@ export function buildDashboardData({
 
   return {
     ...merged,
+    charts: chartSeries ?? merged.charts,
     connection: liveConnection,
-    lastUpdate: liveLastUpdate ?? merged.lastUpdate,
+    lastUpdate: liveLastUpdate ?? chartLastUpdate ?? merged.lastUpdate,
   }
 }

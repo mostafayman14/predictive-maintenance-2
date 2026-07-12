@@ -1,6 +1,5 @@
 import { buildConditionUi } from '../constants/detectedConditions'
 import { extractDetectedCondition } from './conditionNormalizer'
-import { mergeChartPoints } from '../lib/chartUtils'
 
 const SENSOR_KEYS = {
   temperature: 'Temperature Sensor',
@@ -44,17 +43,6 @@ function readSensor(data, key, fallbackTimestamp) {
   return {
     value: toNumber(raw),
     timestamp: fallbackTimestamp,
-  }
-}
-
-function mergeChartSeries(existingChart, incomingChart, scalarValue, unit, timestamp) {
-  const existingPoints = existingChart?.points ?? existingChart?.dataset ?? []
-
-  return {
-    ...existingChart,
-    ...(incomingChart ?? {}),
-    unit: incomingChart?.unit ?? existingChart?.unit ?? unit,
-    points: mergeChartPoints(existingPoints, incomingChart, scalarValue, timestamp),
   }
 }
 
@@ -109,62 +97,48 @@ function mergeLiveIntoDashboard(baseData, livePatch) {
     return baseData
   }
 
-  const {
-    temperature,
-    vibration,
-    sound,
-    current,
-    sensorStatus,
-    charts,
-    timestamp,
-  } = livePatch
+  const { temperature, vibration, sound, current, sensorStatus, timestamp } = livePatch
 
   let sensors = [...baseData.sensors]
 
   if (Array.isArray(sensorStatus)) {
     sensors = sensorStatus
   } else {
-    sensors = updateSensorList(sensors, 'temperature', temperature?.value, sensorStatus?.temperature?.status, sensorStatus?.temperature?.variant)
-    sensors = updateSensorList(sensors, 'vibration', vibration?.value, sensorStatus?.vibration?.status, sensorStatus?.vibration?.variant)
-    sensors = updateSensorList(sensors, 'sound', sound?.value, sensorStatus?.sound?.status, sensorStatus?.sound?.variant)
-    sensors = updateSensorList(sensors, 'current', current?.value, sensorStatus?.current?.status, sensorStatus?.current?.variant)
-  }
-
-  const nextCharts = {
-    temperature: mergeChartSeries(
-      baseData.charts.temperature,
-      charts?.temperature,
+    sensors = updateSensorList(
+      sensors,
+      'temperature',
       temperature?.value,
-      '°C',
-      temperature?.timestamp,
-    ),
-    vibration: mergeChartSeries(
-      baseData.charts.vibration,
-      charts?.vibration,
+      sensorStatus?.temperature?.status,
+      sensorStatus?.temperature?.variant,
+    )
+    sensors = updateSensorList(
+      sensors,
+      'vibration',
       vibration?.value,
-      'mm/s',
-      vibration?.timestamp,
-    ),
-    sound: mergeChartSeries(
-      baseData.charts.sound,
-      charts?.sound,
+      sensorStatus?.vibration?.status,
+      sensorStatus?.vibration?.variant,
+    )
+    sensors = updateSensorList(
+      sensors,
+      'sound',
       sound?.value,
-      'dB',
-      sound?.timestamp,
-    ),
-    current: mergeChartSeries(
-      baseData.charts.current,
-      charts?.current,
+      sensorStatus?.sound?.status,
+      sensorStatus?.sound?.variant,
+    )
+    sensors = updateSensorList(
+      sensors,
+      'current',
       current?.value,
-      'mA',
-      current?.timestamp,
-    ),
+      sensorStatus?.current?.status,
+      sensorStatus?.current?.variant,
+    )
   }
 
   return {
     ...baseData,
     sensors,
-    charts: nextCharts,
+    // Chart series are owned by ChartDataContext — do not re-merge here.
+    charts: baseData.charts,
     detectedCondition: livePatch.detectedCondition ?? baseData.detectedCondition,
     healthScore: livePatch.healthScore
       ? { ...baseData.healthScore, ...livePatch.healthScore }
@@ -175,9 +149,7 @@ function mergeLiveIntoDashboard(baseData, livePatch) {
     prediction: livePatch.prediction
       ? { ...baseData.prediction, ...livePatch.prediction }
       : baseData.prediction,
-    fault: livePatch.fault
-      ? { ...baseData.fault, ...livePatch.fault }
-      : baseData.fault,
+    fault: livePatch.fault ? { ...baseData.fault, ...livePatch.fault } : baseData.fault,
     recommendations: livePatch.recommendations ?? baseData.recommendations,
     lastUpdate: timestamp,
   }

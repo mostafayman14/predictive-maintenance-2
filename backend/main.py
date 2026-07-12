@@ -244,20 +244,12 @@ def merge_with_simulation(manual: dict[str, dict[str, float | int]], timestamp_m
     return merged
 
 
-def build_history_charts(seconds: int = 60) -> dict[str, dict[str, Any]]:
-    end = now_ms()
-    charts: dict[str, dict[str, Any]] = {}
-
-    for key in SENSOR_KEYS:
-        meta = CHART_META[key]
-        points = [
-            build_reading(key, simulated_value(key, end - offset * 1000), end - offset * 1000)
-            for offset in range(seconds, 0, -1)
-        ]
-        charts[key] = {**meta, "points": points}
-
-    return charts
-
+def build_history_charts() -> dict[str, dict[str, Any]]:
+    """Return chart shells only. Series memory is owned by the frontend 3h store."""
+    return {
+        key: {**CHART_META[key], "points": []}
+        for key in SENSOR_KEYS
+    }
 
 def latest_values(payload: dict[str, dict[str, float | int]]) -> dict[str, float]:
     return {key: float(payload[key]["value"]) for key in SENSOR_KEYS if key in payload}

@@ -172,7 +172,7 @@ predictive-maintenance-2/
 │   ├── context/
 │   │   └── LiveDataContext.jsx  # Starts/stops live polling
 │   ├── data/
-│   │   └── mockDashboardData.js # Label/structure fallbacks
+│   │   └── dashboardUiConfig.js # Brand/nav/labels + empty chart shells
 │   ├── hooks/
 │   │   ├── useApiResource.js
 │   │   ├── useDashboardApi.js
@@ -227,7 +227,7 @@ predictive-maintenance-2/
 4. Charts append one point per sensor (dedup by timestamp) and keep last 60 seconds.
 5. Navbar connection badge maps poll status → Connected / Connecting / Reconnecting.
 
-Mock / static UI labels (brand, hero copy, navigation) always come from `mockDashboardData.js`.
+Mock / static UI labels (brand, hero copy, navigation) always come from `dashboardUiConfig.js`.
 
 ---
 

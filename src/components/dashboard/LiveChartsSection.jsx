@@ -1,6 +1,7 @@
 import { memo, useMemo } from 'react'
 
 import { chartConfigs } from '../../constants/chartConfig'
+import { createEmptyCharts } from '../../lib/chartUtils'
 import { SectionHeader } from '../common/SectionHeader'
 import { ErrorBoundary } from '../common/ErrorBoundary'
 import { SensorLineChart } from '../charts/SensorLineChart'
@@ -19,7 +20,15 @@ function getSensorReading(sensors, chartKey) {
   return sensor?.value ?? null
 }
 
-const LiveChartsSection = memo(function LiveChartsSection({ section, charts, sensors, connectionStatus }) {
+const LiveChartsSection = memo(function LiveChartsSection({
+  section,
+  charts,
+  sensors,
+  connectionStatus,
+  isLoading = false,
+}) {
+  const emptyCharts = useMemo(() => createEmptyCharts(), [])
+
   const readings = useMemo(
     () =>
       Object.fromEntries(
@@ -43,9 +52,10 @@ const LiveChartsSection = memo(function LiveChartsSection({ section, charts, sen
             <SensorLineChart
               key={config.key}
               config={config}
-              chartData={charts?.[config.key]}
+              chartData={charts?.[config.key] ?? emptyCharts[config.key]}
               reading={readings[config.key]}
               connectionStatus={connectionStatus}
+              isLoading={isLoading}
               delay={index * 0.05}
             />
           ))}

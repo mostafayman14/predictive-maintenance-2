@@ -5,7 +5,7 @@ import { DashboardSkeleton } from './components/common/DashboardSkeleton'
 import { ErrorBoundary } from './components/common/ErrorBoundary'
 import { OfflineBanner } from './components/common/OfflineBanner'
 import { navigationIcons } from './constants/dashboardIcons'
-import { dashboardMockData } from './data/mockDashboardData'
+import { dashboardUiConfig } from './data/dashboardUiConfig'
 import { useDashboardData } from './hooks/useDashboardData'
 import { useOnlineStatus } from './hooks/useOnlineStatus'
 
@@ -14,7 +14,7 @@ const DashboardPage = lazy(() => import('./pages/DashboardPage'))
 function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
-  const { data, api, live } = useDashboardData(dashboardMockData)
+  const { data, api, live, chartData } = useDashboardData(dashboardUiConfig)
   const isOnline = useOnlineStatus()
 
   const navigationItems = useMemo(
@@ -77,7 +77,12 @@ function App() {
           description="The monitoring dashboard failed to render. Retry or refresh the application."
         >
           <Suspense fallback={<DashboardSkeleton />}>
-            <DashboardPage data={data} apiState={api} connectionStatus={live.connectionStatus} />
+            <DashboardPage
+              data={data}
+              apiState={api}
+              connectionStatus={live.connectionStatus}
+              chartsLoading={chartData.isHistoryLoading}
+            />
           </Suspense>
         </ErrorBoundary>
       </DashboardLayout>

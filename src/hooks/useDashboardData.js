@@ -1,13 +1,15 @@
 import { useMemo } from 'react'
 
-import { dashboardMockData } from '../data/mockDashboardData'
+import { dashboardUiConfig } from '../data/dashboardUiConfig'
 import { buildDashboardData, getPayload } from '../services/dashboardNormalizer'
+import { useChartData } from './useChartData'
 import { useDashboardApi } from './useDashboardApi'
 import { useLiveData } from './useLiveData'
 
-function useDashboardData(fallbackData = dashboardMockData) {
+function useDashboardData(fallbackData = dashboardUiConfig) {
   const api = useDashboardApi()
   const live = useLiveData()
+  const chartData = useChartData()
 
   const staticLabels = useMemo(
     () => ({
@@ -31,22 +33,25 @@ function useDashboardData(fallbackData = dashboardMockData) {
       buildDashboardData({
         fallbackData,
         statusPayload: getPayload(api.status.data),
-        historyPayload: getPayload(api.history.data),
+        historyPayload: {},
         recommendationsPayload: getPayload(api.recommendations.data),
         systemInfoPayload: getPayload(api.systemInfo.data),
         livePatch: live.livePatch,
         liveConnection: live.connection,
         liveLastUpdate: live.lastUpdate,
+        chartSeries: chartData.charts,
+        chartLastUpdate: chartData.lastUpdate,
       }),
     [
       fallbackData,
       api.status.data,
-      api.history.data,
       api.recommendations.data,
       api.systemInfo.data,
       live.livePatch,
       live.connection,
       live.lastUpdate,
+      chartData.charts,
+      chartData.lastUpdate,
     ],
   )
 
@@ -58,10 +63,28 @@ function useDashboardData(fallbackData = dashboardMockData) {
     [staticLabels, metrics],
   )
 
+  const apiState = useMemo(() => {
+    const errors = [...api.errors]
+    if (chartData.historyError) {
+      errors.push({ key: 'history', message: chartData.historyError })
+    }
+
+    return {
+      ...api,
+      isLoading: api.isLoading || chartData.isHistoryLoading,
+      errors,
+      hasError: errors.length > 0,
+      retryAll: async () => {
+        await Promise.all([api.retryAll(), chartData.retryHistory()])
+      },
+    }
+  }, [api, chartData.historyError, chartData.isHistoryLoading, chartData.retryHistory])
+
   return {
     data,
-    api,
+    api: apiState,
     live,
+    chartData,
     isOnline: live.connectionStatus === 'connected',
   }
 }

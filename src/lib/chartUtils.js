@@ -1,35 +1,43 @@
-export const CHART_WINDOW_SECONDS = 60
-export const CHART_WINDOW_MS = CHART_WINDOW_SECONDS * 1000
+export const CHART_WINDOW_MS = 3 * 60 * 60 * 1000
+export const CHART_WINDOW_SECONDS = CHART_WINDOW_MS / 1000
+export const CHART_WINDOW_HOURS = 3
 
-export function createSeedPoints(values, endTime = Date.now()) {
-  return values.map((value, index) => ({
-    timestamp: endTime - (values.length - 1 - index) * 1000,
-    value: Number(value),
-  }))
-}
+export function sanitizePoints(points = []) {
+  const byTimestamp = new Map()
 
-export function normalizeChartDataset(dataset, legacyData = []) {
-  if (Array.isArray(dataset) && dataset.length > 0) {
-    const lastTimestamp = dataset[dataset.length - 1].timestamp
-    const now = Date.now()
-    const endTime = lastTimestamp < now - CHART_WINDOW_MS ? lastTimestamp : now
+  for (const point of points) {
+    if (!point || typeof point !== 'object') {
+      continue
+    }
 
-    return trimChartWindow(dataset, endTime)
+    const timestamp = Number(point.timestamp)
+    const value = Number(point.value)
+
+    if (!Number.isFinite(timestamp) || !Number.isFinite(value)) {
+      continue
+    }
+
+    byTimestamp.set(timestamp, { timestamp, value })
   }
 
-  if (Array.isArray(legacyData) && legacyData.length > 0) {
-    return trimChartWindow(createSeedPoints(legacyData, Date.now()), Date.now())
-  }
-
-  return []
+  return [...byTimestamp.values()].sort((a, b) => a.timestamp - b.timestamp)
 }
 
 export function trimChartWindow(points, endTime = Date.now()) {
-  const windowStart = endTime - CHART_WINDOW_MS
+  const windowEnd = Number.isFinite(endTime) ? endTime : Date.now()
+  const windowStart = windowEnd - CHART_WINDOW_MS
 
-  return points
-    .filter((point) => point.timestamp >= windowStart && point.timestamp <= endTime)
-    .slice(-CHART_WINDOW_SECONDS)
+  return sanitizePoints(points).filter(
+    (point) => point.timestamp >= windowStart && point.timestamp <= windowEnd,
+  )
+}
+
+export function normalizeChartDataset(dataset = []) {
+  if (!Array.isArray(dataset) || dataset.length === 0) {
+    return []
+  }
+
+  return trimChartWindow(dataset, Date.now())
 }
 
 export function appendChartPoint(points = [], value, timestamp = Date.now()) {
@@ -37,43 +45,100 @@ export function appendChartPoint(points = [], value, timestamp = Date.now()) {
     return points
   }
 
-  const lastPoint = points[points.length - 1]
-
-  if (lastPoint && timestamp <= lastPoint.timestamp) {
+  if (!Number.isFinite(Number(timestamp))) {
     return points
   }
 
+  const sanitized = sanitizePoints(points)
+  const lastPoint = sanitized[sanitized.length - 1]
+  const nextTimestamp = Number(timestamp)
+
+  if (lastPoint && nextTimestamp <= lastPoint.timestamp) {
+    return sanitized
+  }
+
   return trimChartWindow(
-    [...points, { timestamp, value: Number(value) }],
-    timestamp,
+    [...sanitized, { timestamp: nextTimestamp, value: Number(value) }],
+    Date.now(),
   )
 }
 
 export function mergeChartPoints(existingPoints = [], incomingChart, scalarValue, timestamp = Date.now()) {
   if (incomingChart?.points?.length) {
-    return trimChartWindow(incomingChart.points, timestamp)
-  }
-
-  if (incomingChart?.data?.length) {
-    return trimChartWindow(createSeedPoints(incomingChart.data, timestamp), timestamp)
+    return trimChartWindow(incomingChart.points, Date.now())
   }
 
   if (scalarValue !== null && scalarValue !== undefined) {
     return appendChartPoint(existingPoints, scalarValue, timestamp)
   }
 
-  return existingPoints
+  return sanitizePoints(existingPoints)
 }
 
 export function formatChartTime(timestamp) {
-  return new Date(timestamp).toLocaleTimeString([], {
+  const date = new Date(timestamp)
+
+  if (!Number.isFinite(date.getTime())) {
+    return '--'
+  }
+
+  return date.toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit',
   })
 }
 
 export function getChartWindowDomain(points) {
   const end = points.length ? points[points.length - 1].timestamp : Date.now()
   return [end - CHART_WINDOW_MS, end]
+}
+
+export function createEmptyCharts() {
+  return {
+    temperature: {
+      title: 'Temperature',
+      unit: '°C',
+      color: '#0891b2',
+      points: [],
+    },
+    vibration: {
+      title: 'Vibration',
+      unit: 'mm/s',
+      color: '#7c3aed',
+      points: [],
+    },
+    sound: {
+      title: 'Sound',
+      unit: 'dB',
+      color: '#059669',
+      points: [],
+    },
+    current: {
+      title: 'Current',
+      unit: 'A',
+      color: '#d97706',
+      points: [],
+    },
+  }
+}
+
+export function normalizeHistoryCharts(rawCharts = {}) {
+  const empty = createEmptyCharts()
+
+  return Object.fromEntries(
+    Object.keys(empty).map((key) => {
+      const incoming = rawCharts?.[key] ?? {}
+      return [
+        key,
+        {
+          ...empty[key],
+          ...incoming,
+          unit: incoming.unit ?? empty[key].unit,
+          title: incoming.title ?? empty[key].title,
+          color: incoming.color ?? empty[key].color,
+          points: trimChartWindow(incoming.points ?? incoming.dataset ?? [], Date.now()),
+        },
+      ]
+    }),
+  )
 }

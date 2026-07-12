@@ -1,4 +1,4 @@
-export const dashboardMockData = {
+export const dashboardUiConfig = {
   brand: {
     name: 'Industrial AI',
     subtitle: 'Maintenance Suite',
@@ -10,7 +10,7 @@ export const dashboardMockData = {
   connection: {
     label: 'Connected',
     variant: 'success',
-    description: 'Local mock connection',
+    description: 'Receiving motor data',
   },
   layoutLabels: {
     collapseSidebar: 'Collapse',
@@ -41,12 +41,12 @@ export const dashboardMockData = {
     eyebrow: 'Graduation Project',
     title: 'Industrial motor monitoring interface for predictive maintenance workflows.',
     description:
-      'Mock dashboard structure with reusable components prepared for future API integration.',
+      'Live motor monitoring dashboard connected to backend sensor and prediction APIs.',
   },
   sections: {
     charts: {
       title: 'Live Charts Section',
-      description: 'Mock chart components for future sensor streams.',
+      description: 'Rolling 3-hour sensor history from the backend API.',
     },
     prediction: {
       title: 'Motor Prediction Section',
@@ -85,38 +85,10 @@ export const dashboardMockData = {
       points: [],
     },
   },
-  prediction: {
-    title: 'Detected Condition',
-    prediction: 'Healthy',
-    probability: 100,
-    description: 'Motor is operating normally. No maintenance is required.',
-    variant: 'success',
-  },
-  fault: {
-    title: 'Diagnosis',
-    fault: 'Healthy',
-    severity: 'Low',
-    description: 'Motor is operating normally. No maintenance is required.',
-    variant: 'success',
-  },
-  detectedCondition: 'Good100',
-  recommendations: [
-    {
-      title: 'Recommended Action',
-      content: 'Motor is operating normally. No maintenance is required.',
-      value: 'item-0',
-    },
-    {
-      title: 'Diagnosis',
-      content: 'Healthy',
-      value: 'item-1',
-    },
-    {
-      title: 'Condition Code',
-      content: 'Good100',
-      value: 'item-2',
-    },
-  ],
+  prediction: null,
+  fault: null,
+  detectedCondition: null,
+  recommendations: [],
   recommendationPanel: {
     title: 'Recommended Action',
     description: 'Guidance derived from the detected motor condition.',
