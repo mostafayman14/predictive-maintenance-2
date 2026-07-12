@@ -5,6 +5,7 @@ import { createEmptyCharts } from '../../lib/chartUtils'
 import { SectionHeader } from '../common/SectionHeader'
 import { ErrorBoundary } from '../common/ErrorBoundary'
 import { SensorLineChart } from '../charts/SensorLineChart'
+import { ExportExcelButton } from './ExportExcelButton'
 
 const SENSOR_READING_KEYS = {
   temperature: 'Temperature Sensor',
@@ -26,6 +27,7 @@ const LiveChartsSection = memo(function LiveChartsSection({
   sensors,
   connectionStatus,
   isLoading = false,
+  exportCondition,
 }) {
   const emptyCharts = useMemo(() => createEmptyCharts(), [])
 
@@ -39,7 +41,15 @@ const LiveChartsSection = memo(function LiveChartsSection({
 
   return (
     <section aria-labelledby="charts-section-title">
-      <SectionHeader {...section} />
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <SectionHeader {...section} className="mb-0" />
+        <ExportExcelButton
+          charts={charts}
+          conditionHistory={exportCondition}
+          disabled={isLoading}
+          className="shrink-0"
+        />
+      </div>
       <h2 id="charts-section-title" className="sr-only">
         {section.title}
       </h2>

@@ -1,4 +1,4 @@
-import { lazy, memo, Suspense } from 'react'
+import { lazy, memo, Suspense, useMemo } from 'react'
 import { motion } from 'framer-motion'
 
 import { ApiStatePanel } from '../components/dashboard/ApiStatePanel'
@@ -19,6 +19,22 @@ const DashboardPage = memo(function DashboardPage({
   connectionStatus,
   chartsLoading = false,
 }) {
+  const exportCondition = useMemo(
+    () => ({
+      detectedCondition: data.detectedCondition,
+      diagnosis: data.prediction?.prediction ?? data.fault?.fault ?? null,
+      recommendedAction:
+        data.prediction?.description ?? data.recommendations?.[0]?.content ?? null,
+      recommendations: data.recommendations,
+    }),
+    [
+      data.detectedCondition,
+      data.prediction,
+      data.fault,
+      data.recommendations,
+    ],
+  )
+
   return (
     <motion.main
       className="space-y-6 p-4 sm:p-6"
@@ -65,6 +81,7 @@ const DashboardPage = memo(function DashboardPage({
             sensors={data.sensors}
             connectionStatus={connectionStatus}
             isLoading={chartsLoading}
+            exportCondition={exportCondition}
           />
         </Suspense>
       </motion.div>

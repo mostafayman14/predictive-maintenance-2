@@ -3,10 +3,10 @@ import { motion } from 'framer-motion'
 
 import { transition } from '../../lib/motion'
 
-const SectionHeader = memo(function SectionHeader({ title, description }) {
+const SectionHeader = memo(function SectionHeader({ title, description, className }) {
   return (
     <motion.div
-      className="mb-4"
+      className={className ?? 'mb-4'}
       initial={{ opacity: 0, y: 8 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true, margin: '-40px' }}
