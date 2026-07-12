@@ -122,13 +122,13 @@ export function createEmptyCharts() {
     },
     sound: {
       title: 'Sound',
-      unit: 'dB',
+      unit: '×10³',
       color: '#059669',
       points: [],
     },
     current: {
       title: 'Current',
-      unit: 'A',
+      unit: 'mA',
       color: '#d97706',
       points: [],
     },

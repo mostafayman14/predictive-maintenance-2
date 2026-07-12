@@ -17,8 +17,8 @@ const SENSOR_CHART_KEYS = ['temperature', 'vibration', 'sound', 'current']
 const SENSOR_UNITS = {
   temperature: '°C',
   vibration: 'mm/s',
-  sound: 'dB',
-  current: 'A',
+  sound: '×10³',
+  current: 'mA',
 }
 
 function latestPointTimestamp(charts) {

@@ -20,8 +20,8 @@ SENSOR_KEYS = ("temperature", "vibration", "sound", "current")
 CHART_META = {
     "temperature": {"title": "Temperature", "unit": "°C", "color": "#0891b2"},
     "vibration": {"title": "Vibration", "unit": "mm/s", "color": "#7c3aed"},
-    "sound": {"title": "Sound", "unit": "dB", "color": "#059669"},
-    "current": {"title": "Current", "unit": "A", "color": "#d97706"},
+    "sound": {"title": "Sound", "unit": "×10³", "color": "#059669"},
+    "current": {"title": "Current", "unit": "mA", "color": "#d97706"},
 }
 
 BASELINE = {
@@ -259,8 +259,8 @@ def build_sensor_cards(payload: dict[str, dict[str, float | int]]) -> list[dict[
     status_map = {
         "temperature": ("Temperature Sensor", "°C"),
         "vibration": ("Vibration Sensor", "mm/s"),
-        "sound": ("Sound Sensor", "dB"),
-        "current": ("Current Sensor", "A"),
+        "sound": ("Sound Sensor", "×10³"),
+        "current": ("Current Sensor", "mA"),
     }
 
     sensors = []

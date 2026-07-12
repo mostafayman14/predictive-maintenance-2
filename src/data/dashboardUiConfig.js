@@ -56,8 +56,8 @@ export const dashboardUiConfig = {
   sensors: [
     { title: 'Temperature Sensor', value: null, unit: '°C', status: 'Waiting', variant: 'muted' },
     { title: 'Vibration Sensor', value: null, unit: 'mm/s', status: 'Waiting', variant: 'muted' },
-    { title: 'Sound Sensor', value: null, unit: 'dB', status: 'Waiting', variant: 'muted' },
-    { title: 'Current Sensor', value: null, unit: 'A', status: 'Waiting', variant: 'muted' },
+    { title: 'Sound Sensor', value: null, unit: '×10³', status: 'Waiting', variant: 'muted' },
+    { title: 'Current Sensor', value: null, unit: 'mA', status: 'Waiting', variant: 'muted' },
   ],
   charts: {
     temperature: {
@@ -74,13 +74,13 @@ export const dashboardUiConfig = {
     },
     sound: {
       title: 'Sound',
-      unit: 'dB',
+      unit: '×10³',
       color: '#059669',
       points: [],
     },
     current: {
       title: 'Current',
-      unit: 'A',
+      unit: 'mA',
       color: '#d97706',
       points: [],
     },
