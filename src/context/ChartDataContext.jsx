@@ -82,7 +82,6 @@ function ChartDataProvider({ children }) {
 
     setCharts((previous) => {
       const next = { ...previous }
-      const now = Date.now()
 
       for (const key of SENSOR_CHART_KEYS) {
         const existing = previous[key] ?? createEmptyCharts()[key]
@@ -91,11 +90,16 @@ function ChartDataProvider({ children }) {
         let points = existing.points ?? []
 
         if (incomingSeries?.points?.length) {
-          points = trimChartWindow(incomingSeries.points, now)
+          // Trim relative to newest point in the series (not wall-clock).
+          points = trimChartWindow(incomingSeries.points)
         } else if (reading?.value !== null && reading?.value !== undefined) {
-          points = appendChartPoint(points, reading.value, reading.timestamp ?? now)
+          points = appendChartPoint(
+            points,
+            reading.value,
+            reading.timestamp ?? Date.now(),
+          )
         } else {
-          points = trimChartWindow(points, now)
+          points = trimChartWindow(points)
         }
 
         next[key] = {

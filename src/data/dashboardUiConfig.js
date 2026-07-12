@@ -46,7 +46,7 @@ export const dashboardUiConfig = {
   sections: {
     charts: {
       title: 'Live Charts Section',
-      description: 'Rolling 3-hour sensor history from the backend API.',
+      description: 'Live 70-second scrolling sensor window from the backend API.',
     },
     prediction: {
       title: 'Motor Prediction Section',

@@ -12,7 +12,7 @@ import {
 } from 'recharts'
 
 import {
-  CHART_WINDOW_HOURS,
+  CHART_WINDOW_SECONDS,
   formatChartTime,
   getChartWindowDomain,
   normalizeChartDataset,
@@ -276,7 +276,7 @@ const LiveLineChart = memo(function LiveLineChart({
           animate={{ opacity: 1 }}
           transition={{ ...transition, delay: 0.15 }}
         >
-          Last {windowSeconds ? `${windowSeconds}s` : `${CHART_WINDOW_HOURS}h`} · rolling window
+          Last {windowSeconds ?? CHART_WINDOW_SECONDS}s · scrolling window
         </motion.p>
       </CardContent>
     </AnimatedCard>

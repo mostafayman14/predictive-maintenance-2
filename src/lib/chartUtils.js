@@ -1,6 +1,5 @@
-export const CHART_WINDOW_MS = 3 * 60 * 60 * 1000
+export const CHART_WINDOW_MS = 70 * 1000
 export const CHART_WINDOW_SECONDS = CHART_WINDOW_MS / 1000
-export const CHART_WINDOW_HOURS = 3
 
 export function sanitizePoints(points = []) {
   const byTimestamp = new Map()
@@ -23,12 +22,22 @@ export function sanitizePoints(points = []) {
   return [...byTimestamp.values()].sort((a, b) => a.timestamp - b.timestamp)
 }
 
-export function trimChartWindow(points, endTime = Date.now()) {
-  const windowEnd = Number.isFinite(endTime) ? endTime : Date.now()
-  const windowStart = windowEnd - CHART_WINDOW_MS
+/**
+ * Trim to a sliding window anchored on the newest point (not wall-clock).
+ * Visible range: [maxTimestamp - CHART_WINDOW_MS, maxTimestamp]
+ */
+export function trimChartWindow(points = []) {
+  const sanitized = sanitizePoints(points)
 
-  return sanitizePoints(points).filter(
-    (point) => point.timestamp >= windowStart && point.timestamp <= windowEnd,
+  if (!sanitized.length) {
+    return []
+  }
+
+  const maxTimestamp = sanitized[sanitized.length - 1].timestamp
+  const windowStart = maxTimestamp - CHART_WINDOW_MS
+
+  return sanitized.filter(
+    (point) => point.timestamp >= windowStart && point.timestamp <= maxTimestamp,
   )
 }
 
@@ -37,7 +46,7 @@ export function normalizeChartDataset(dataset = []) {
     return []
   }
 
-  return trimChartWindow(dataset, Date.now())
+  return trimChartWindow(dataset)
 }
 
 export function appendChartPoint(points = [], value, timestamp = Date.now()) {
@@ -57,15 +66,13 @@ export function appendChartPoint(points = [], value, timestamp = Date.now()) {
     return sanitized
   }
 
-  return trimChartWindow(
-    [...sanitized, { timestamp: nextTimestamp, value: Number(value) }],
-    Date.now(),
-  )
+  // New point becomes maxTimestamp; oldest points outside the 70s window drop off.
+  return trimChartWindow([...sanitized, { timestamp: nextTimestamp, value: Number(value) }])
 }
 
 export function mergeChartPoints(existingPoints = [], incomingChart, scalarValue, timestamp = Date.now()) {
   if (incomingChart?.points?.length) {
-    return trimChartWindow(incomingChart.points, Date.now())
+    return trimChartWindow(incomingChart.points)
   }
 
   if (scalarValue !== null && scalarValue !== undefined) {
@@ -85,12 +92,18 @@ export function formatChartTime(timestamp) {
   return date.toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
+    second: '2-digit',
   })
 }
 
-export function getChartWindowDomain(points) {
-  const end = points.length ? points[points.length - 1].timestamp : Date.now()
-  return [end - CHART_WINDOW_MS, end]
+/** X-axis domain: [maxTimestamp - CHART_WINDOW_MS, maxTimestamp] */
+export function getChartWindowDomain(points = []) {
+  if (!points.length) {
+    return [0, CHART_WINDOW_MS]
+  }
+
+  const maxTimestamp = points[points.length - 1].timestamp
+  return [maxTimestamp - CHART_WINDOW_MS, maxTimestamp]
 }
 
 export function createEmptyCharts() {
@@ -136,7 +149,7 @@ export function normalizeHistoryCharts(rawCharts = {}) {
           unit: incoming.unit ?? empty[key].unit,
           title: incoming.title ?? empty[key].title,
           color: incoming.color ?? empty[key].color,
-          points: trimChartWindow(incoming.points ?? incoming.dataset ?? [], Date.now()),
+          points: trimChartWindow(incoming.points ?? incoming.dataset ?? []),
         },
       ]
     }),
